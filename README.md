@@ -1,7 +1,7 @@
-# OdooPLM 19.0 — Docker
+# OdooPLM 18.0 — Docker
 
 Docker image and Compose stack for **[OdooPLM](https://github.com/OmniaGit/odooplm)**
-on **Odoo 19.0**, by [OmniaSolutions](https://www.omniasolutions.website).
+on **Odoo 18.0**, by [OmniaSolutions](https://www.omniasolutions.website).
 
 > Other Odoo releases live in the matching branch of this repository:
 > [`18.0`](../../tree/18.0) · [`19.0`](../../tree/19.0) · [index](../../tree/main)
@@ -11,8 +11,8 @@ on **Odoo 19.0**, by [OmniaSolutions](https://www.omniasolutions.website).
 ## Quick start
 
 ```bash
-git clone --branch 19.0 https://github.com/OmniaGit/DockerOdooPLM.git odooplm-19
-cd odooplm-19
+git clone --branch 18.0 https://github.com/OmniaGit/DockerOdooPLM.git odooplm-18
+cd odooplm-18
 docker compose up
 ```
 
@@ -37,10 +37,10 @@ docker compose logs -f odoo
 
 | | |
 |---|---|
-| Base | official `odoo:19.0` image (Ubuntu 24.04, Python 3.12) |
-| PLM modules | the `19.0` branch of [OmniaGit/odooplm](https://github.com/OmniaGit/odooplm), in `/mnt/odooplm-addons` |
+| Base | official `odoo:18.0` image (Ubuntu 24.04, Python 3.12) |
+| PLM modules | the `18.0` branch of [OmniaGit/odooplm](https://github.com/OmniaGit/odooplm), in `/mnt/odooplm-addons` |
 | Your modules | `./addons-extra` of this repository, mounted on `/mnt/extra-addons` |
-| Database | PostgreSQL 17 container |
+| Database | PostgreSQL 16 container |
 | Ports | `8069` web, `8072` websocket (chatter, 3D viewer) |
 | Config | `./config/odoo.conf`, mounted on `/etc/odoo` |
 | Data | named volumes `odoo-data` (filestore) and `db-data` |
@@ -56,19 +56,22 @@ installed. The two Enterprise-only modules (`plm_pdf_workorder_enterprise`,
 
 | Variant | Tag | Difference |
 |---|---|---|
-| full | `19.0`, `latest` | includes `cadquery` / OCP / vtk, required by `plm_automated_convertion` (STEP → 3MF / STL / PNG batch conversion) |
-| slim | `19.0-slim`, `latest-slim` | same modules, ~1.5 GB smaller; installing `plm_automated_convertion` will fail on the missing `cadquery` dependency |
+| full | `18.0` | includes the CAD conversion stack (`cadquery`/OCP/vtk, `ezdxf`, `matplotlib`, `numpy-stl`, `to-3mf`) required by `plm_automated_convertion` — STEP → 3MF / STL / PNG batch conversion |
+| slim | `18.0-slim` | ~1.6 GB smaller. Every PLM module works except `plm_automated_convertion`, which refuses to install on the missing `cadquery` dependency — it is the only module importing those packages |
+
+The `latest` tags always point at the newest Odoo release, so they are published
+from the [`19.0`](../../tree/19.0) branch — pull `18.0` explicitly here.
 
 ```bash
 # use the slim image
-ODOOPLM_IMAGE=ghcr.io/omniagit/odooplm:19.0-slim docker compose up -d
+ODOOPLM_IMAGE=ghcr.io/omniagit/odooplm:18.0-slim docker compose up -d
 ```
 
 Published on both registries:
 
 ```
-ghcr.io/omniagit/odooplm:19.0        omniasolutions/odooplm:19.0
-ghcr.io/omniagit/odooplm:19.0-slim   omniasolutions/odooplm:19.0-slim
+ghcr.io/omniagit/odooplm:18.0        omniasolutions/odooplm:18.0
+ghcr.io/omniagit/odooplm:18.0-slim   omniasolutions/odooplm:18.0-slim
 ```
 
 ## Configuration
@@ -77,7 +80,7 @@ All variables have working defaults; see [`.env.example`](.env.example).
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `ODOOPLM_IMAGE` | `ghcr.io/omniagit/odooplm:19.0` | image used by the stack |
+| `ODOOPLM_IMAGE` | `ghcr.io/omniagit/odooplm:18.0` | image used by the stack |
 | `ODOO_PORT` | `8069` | host port for the web interface |
 | `ODOO_WEBSOCKET_PORT` | `8072` | host port for websocket/longpolling |
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` | `odoo` / `odoo` | database credentials |
@@ -87,7 +90,7 @@ All variables have working defaults; see [`.env.example`](.env.example).
 | `ODOOPLM_INIT_LANG` | *(empty)* | extra language to load, e.g. `it_IT` |
 | `ODOOPLM_AUTO_INIT` | `1` | `0` disables the automatic database creation |
 | `ODOOPLM_VARIANT` | `full` | build argument: `full` or `slim` |
-| `ODOOPLM_REF` | `19.0` | build argument: branch/tag/commit of `odooplm` to package |
+| `ODOOPLM_REF` | `18.0` | build argument: branch/tag/commit of `odooplm` to package |
 
 Want the whole suite installed from the start?
 
@@ -132,16 +135,16 @@ docker compose down
 
 ```bash
 docker compose build                       # full variant
-docker build --build-arg VARIANT=slim -t odooplm:19.0-slim .
+docker build --build-arg VARIANT=slim -t odooplm:18.0-slim .
 
 # package a specific state of the PLM sources
-docker build --build-arg ODOOPLM_REF=19.0 -t odooplm:19.0 .
+docker build --build-arg ODOOPLM_REF=18.0 -t odooplm:18.0 .
 ```
 
 The exact PLM commit baked into an image is recorded inside it:
 
 ```bash
-docker run --rm --entrypoint cat ghcr.io/omniagit/odooplm:19.0 /etc/odooplm-build-info
+docker run --rm --entrypoint cat ghcr.io/omniagit/odooplm:18.0 /etc/odooplm-build-info
 ```
 
 ## Adding your own modules
@@ -158,18 +161,25 @@ docker compose exec odoo odoo -d odooplm --db_host db -i your_module --stop-afte
 ```bash
 # backup (database + filestore)
 docker compose exec -T db pg_dump -U odoo -Fc odooplm > backups/odooplm.dump
-docker run --rm -v odooplm19_odoo-data:/data -v "$PWD/backups:/backup" \
+docker run --rm -v odooplm18_odoo-data:/data -v "$PWD/backups:/backup" \
     busybox tar czf /backup/filestore.tgz -C /data .
 
 # restore
 docker compose exec -T db psql -U odoo -d postgres -c "CREATE DATABASE odooplm OWNER odoo"
 docker compose exec -T db pg_restore -U odoo -d odooplm < backups/odooplm.dump
-docker run --rm -v odooplm19_odoo-data:/data -v "$PWD/backups:/backup" \
+docker run --rm -v odooplm18_odoo-data:/data -v "$PWD/backups:/backup" \
     busybox tar xzf /backup/filestore.tgz -C /data
 ```
 
 The database manager at <http://localhost:8069/web/database/manager> does the same
 job through the browser (master password: `admin_passwd` from `config/odoo.conf`).
+
+## Upgrading to Odoo 19
+
+Odoo does not migrate community databases by itself. To move a PLM database from
+18.0 to 19.0 you need the Odoo upgrade service (or OpenUpgrade) plus the PLM
+migration scripts — ask **info@omniasolutions.eu**. This repository only packages
+each release; it does not perform database migrations.
 
 ## CAD client
 

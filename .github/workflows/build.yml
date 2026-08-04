@@ -2,22 +2,22 @@ name: build
 
 on:
   push:
-    branches: ["19.0"]
+    branches: ["18.0"]
     paths-ignore:
       - "**.md"
       - "LICENSE"
   pull_request:
-    branches: ["19.0"]
+    branches: ["18.0"]
   workflow_dispatch:
   schedule:
     # weekly rebuild, so the image follows the odooplm branch and the Odoo base image
     - cron: "0 4 * * 1"
 
 env:
-  ODOO_VERSION: "19.0"
-  ODOOPLM_REF: "19.0"
-  # this branch packages the newest Odoo release -> it owns the "latest" tags
-  PUSH_LATEST: "true"
+  ODOO_VERSION: "18.0"
+  ODOOPLM_REF: "18.0"
+  # the "latest" tags belong to the branch packaging the newest Odoo release
+  PUSH_LATEST: "false"
   GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/odooplm
   DOCKERHUB_IMAGE: ${{ vars.DOCKERHUB_NAMESPACE || 'omniasolutions' }}/odooplm
 

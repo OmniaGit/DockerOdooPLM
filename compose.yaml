@@ -1,13 +1,13 @@
-name: ${COMPOSE_PROJECT_NAME:-odooplm19}
+name: ${COMPOSE_PROJECT_NAME:-odooplm18}
 
 services:
   odoo:
-    image: ${ODOOPLM_IMAGE:-ghcr.io/omniagit/odooplm:19.0}
+    image: ${ODOOPLM_IMAGE:-ghcr.io/omniagit/odooplm:18.0}
     build:
       context: .
       args:
-        ODOO_VERSION: "19.0"
-        ODOOPLM_REF: ${ODOOPLM_REF:-19.0}
+        ODOO_VERSION: "18.0"
+        ODOOPLM_REF: ${ODOOPLM_REF:-18.0}
         VARIANT: ${ODOOPLM_VARIANT:-full}
     restart: unless-stopped
     depends_on:
@@ -45,7 +45,7 @@ services:
       retries: 5
 
   db:
-    image: postgres:17
+    image: postgres:16
     restart: unless-stopped
     environment:
       POSTGRES_DB: postgres

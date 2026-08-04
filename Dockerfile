@@ -4,10 +4,10 @@
 # Image built on top of the official Odoo image, with every community PLM module
 # available in the addons path.
 #
-#   docker build -t odooplm:19.0 .
-#   docker build -t odooplm:19.0-slim --build-arg VARIANT=slim .
+#   docker build -t odooplm:18.0 .
+#   docker build -t odooplm:18.0-slim --build-arg VARIANT=slim .
 #
-ARG ODOO_VERSION=19.0
+ARG ODOO_VERSION=18.0
 
 # -----------------------------------------------------------------------------
 # Stage 1 — fetch the PLM sources (git stays out of the final image)
@@ -15,7 +15,7 @@ ARG ODOO_VERSION=19.0
 FROM odoo:${ODOO_VERSION} AS sources
 
 ARG ODOOPLM_REPO=https://github.com/OmniaGit/odooplm.git
-ARG ODOOPLM_REF=19.0
+ARG ODOOPLM_REF=18.0
 # Modules that need Odoo Enterprise to be installable. Set to 1 to keep them.
 ARG KEEP_ENTERPRISE_MODULES=0
 
@@ -65,8 +65,8 @@ RUN mkdir -p /build-info \
 # -----------------------------------------------------------------------------
 FROM odoo:${ODOO_VERSION}
 
-ARG ODOO_VERSION=19.0
-ARG ODOOPLM_REF=19.0
+ARG ODOO_VERSION=18.0
+ARG ODOOPLM_REF=18.0
 # full = with the CAD conversion stack (cadquery/OCP/vtk), slim = without it
 ARG VARIANT=full
 

@@ -3,13 +3,13 @@
 # Boot the stack with a given image, wait for Odoo to answer, verify that the
 # PLM modules were installed, then tear everything down.
 #
-#   ./scripts/smoke-test.sh odooplm:19.0
+#   ./scripts/smoke-test.sh odooplm:18.0
 #
 # Used by the CI workflow before the images are pushed.
 #
 set -euo pipefail
 
-IMAGE="${1:-${ODOOPLM_IMAGE:-odooplm:19.0}}"
+IMAGE="${1:-${ODOOPLM_IMAGE:-odooplm:18.0}}"
 PROJECT="${COMPOSE_PROJECT_NAME:-odooplm-smoke}"
 PORT="${ODOO_PORT:-18069}"
 DB="${ODOOPLM_DB:-odooplm}"
