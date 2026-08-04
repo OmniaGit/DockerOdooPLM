@@ -54,10 +54,10 @@ installed. The two Enterprise-only modules (`plm_pdf_workorder_enterprise`,
 
 ### full vs slim
 
-| Variant | Tag | Difference |
-|---|---|---|
-| full | `19.0`, `latest` | includes the CAD conversion stack (`cadquery`/OCP/vtk, `ezdxf`, `matplotlib`, `numpy-stl`, `to-3mf`) required by `plm_automated_convertion` — STEP → 3MF / STL / PNG batch conversion |
-| slim | `19.0-slim`, `latest-slim` | ~1.6 GB smaller. Every PLM module works except `plm_automated_convertion`, which refuses to install on the missing `cadquery` dependency — it is the only module importing those packages |
+| Variant | Tag | On disk | Difference |
+|---|---|---|---|
+| full | `19.0`, `latest` | ~4.4 GB | includes the CAD conversion stack (`cadquery`/OCP/vtk, `ezdxf`, `matplotlib`, `numpy-stl`, `to-3mf`) required by `plm_automated_convertion` — STEP → 3MF / STL / PNG batch conversion |
+| slim | `19.0-slim`, `latest-slim` | ~2.5 GB | every PLM module works except `plm_automated_convertion`, which refuses to install on the missing `cadquery` dependency — it is the only module importing those packages |
 
 ```bash
 # use the slim image
