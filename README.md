@@ -44,10 +44,10 @@ Every branch publishes the same two variants to **both** registries:
 | GitHub Container Registry | `ghcr.io/omniagit/odooplm` |
 | Docker Hub | `omniasolutions/odooplm` |
 
-| Variant | Tag | Contains | Size |
+| Variant | Tag | Contains | On disk |
 |---|---|---|---|
-| **full** | `19.0` | Everything, including the CAD conversion stack (`cadquery`, `OCP`, `vtk`) needed by `plm_automated_convertion` | large (~3 GB) |
-| **slim** | `19.0-slim` | All PLM modules and the 3D/2D web viewer, without the CAD conversion stack | moderate (~1.5 GB) |
+| **full** | `19.0` | Everything, including the CAD conversion stack (`cadquery`/OCP/vtk, `ezdxf`, `matplotlib`, `numpy-stl`, `to-3mf`) needed by `plm_automated_convertion` | ~4.4 GB |
+| **slim** | `19.0-slim` | The whole suite except `plm_automated_convertion` — the only module importing those packages | ~2.5 GB |
 
 Both variants ship **all community OdooPLM modules** in the addons path; only the
 core `plm` module is installed automatically. Everything else is one click away in
@@ -92,6 +92,27 @@ addons-extra/            # drop your own addons here, they are mounted read-writ
 Makefile                 # make build / up / down / logs / shell / psql
 .github/workflows/       # CI: build, smoke-test and publish the images
 ```
+
+## Publishing the images
+
+Each version branch carries its own `.github/workflows/build.yml`. On every push to
+that branch — and once a week, so the image follows both the `odooplm` branch and
+the official Odoo base image — it builds the `full` and `slim` variants, boots each
+one against PostgreSQL to check that Odoo answers and the PLM modules install, and
+only then pushes the tags.
+
+To enable publishing on a fresh fork or repository:
+
+| Where | Name | Value |
+|---|---|---|
+| Settings → Secrets → Actions | `DOCKERHUB_USERNAME` | Docker Hub user |
+| Settings → Secrets → Actions | `DOCKERHUB_TOKEN` | Docker Hub access token |
+| Settings → Variables → Actions | `DOCKERHUB_NAMESPACE` | optional, defaults to `omniasolutions` |
+
+GHCR needs no configuration — the built-in `GITHUB_TOKEN` is enough. Without the
+Docker Hub secrets the workflow still runs and pushes to GHCR only, with a warning.
+Remember to switch the new `odooplm` package to *public* in the repository
+*Packages* settings, otherwise `docker pull` asks for a login.
 
 ## Related projects
 
