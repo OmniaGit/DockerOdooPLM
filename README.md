@@ -54,10 +54,10 @@ installed. The two Enterprise-only modules (`plm_pdf_workorder_enterprise`,
 
 ### full vs slim
 
-| Variant | Tag | Difference |
-|---|---|---|
-| full | `18.0` | includes the CAD conversion stack (`cadquery`/OCP/vtk, `ezdxf`, `matplotlib`, `numpy-stl`, `to-3mf`) required by `plm_automated_convertion` — STEP → 3MF / STL / PNG batch conversion |
-| slim | `18.0-slim` | ~1.6 GB smaller. Every PLM module works except `plm_automated_convertion`, which refuses to install on the missing `cadquery` dependency — it is the only module importing those packages |
+| Variant | Tag | On disk | Difference |
+|---|---|---|---|
+| full | `18.0` | ~4.2 GB | includes the CAD conversion stack (`cadquery`/OCP/vtk, `ezdxf`, `matplotlib`, `numpy-stl`, `to-3mf`) required by `plm_automated_convertion` — STEP → 3MF / STL / PNG batch conversion |
+| slim | `18.0-slim` | ~2.3 GB | every PLM module works except `plm_automated_convertion`, which refuses to install on the missing `cadquery` dependency — it is the only module importing those packages |
 
 The `latest` tags always point at the newest Odoo release, so they are published
 from the [`19.0`](../../tree/19.0) branch — pull `18.0` explicitly here.
