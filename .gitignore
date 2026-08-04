@@ -1,0 +1,30 @@
+# --- local environment -------------------------------------------------------
+.env
+*.local.yaml
+*.local.yml
+
+# --- runtime data ------------------------------------------------------------
+filestore/
+backups/
+*.dump
+*.zip
+*.log
+
+# --- extra addons mounted at runtime (keep the folder, ignore its content) ----
+addons-extra/*
+!addons-extra/.gitkeep
+
+# --- Eclipse / IDE metadata --------------------------------------------------
+.project
+.pydevproject
+.settings/
+.idea/
+.vscode/
+
+# --- OS noise ----------------------------------------------------------------
+.DS_Store
+Thumbs.db
+
+# --- python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
