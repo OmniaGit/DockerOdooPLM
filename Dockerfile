@@ -107,13 +107,14 @@ ENV ODOOPLM_ADDONS=/mnt/odooplm-addons \
     ODOOPLM_AUTO_INIT=1 \
     ODOOPLM_WITH_DEMO=0
 
-COPY --from=sources /src ${ODOOPLM_ADDONS}
+# --chown here rather than a later `chown -R`, which would duplicate the whole
+# addons tree in an extra layer.
+COPY --from=sources --chown=odoo:odoo /src ${ODOOPLM_ADDONS}
 COPY --from=sources /build-info/odooplm /etc/odooplm-build-info
-COPY config/odoo.conf /etc/odoo/odoo.conf
+COPY --chown=odoo:odoo config/odoo.conf /etc/odoo/odoo.conf
 COPY scripts/odooplm-entrypoint.sh /usr/local/bin/odooplm-entrypoint.sh
 
 RUN chmod +x /usr/local/bin/odooplm-entrypoint.sh \
-    && chown -R odoo:odoo ${ODOOPLM_ADDONS} /etc/odoo \
     && mkdir -p /mnt/extra-addons \
     && chown odoo:odoo /mnt/extra-addons
 
