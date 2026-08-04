@@ -1,0 +1,13 @@
+# CAD conversion stack — installed only in the "full" image variant.
+#
+# Needed by plm_automated_convertion (STEP -> 3MF / STL / PNG batch conversion).
+# cadquery pulls OCP (OpenCascade), vtk, numba and scipy: about 1.5 GB of wheels,
+# which is the whole size difference between the "full" and "slim" images.
+#
+# Upstream (odooplm/aaa_requirements.txt) builds cadquery from git and pins
+# numpy==1.26.4 / scipy==1.16.2 / nlopt==2.7.1 / matplotlib==3.8.4. Here the
+# released wheels are used instead, which is much faster to build and keeps the
+# numpy 2.x line coherent across the image. Pin these lines if you need to match
+# an existing deployment exactly.
+
+cadquery

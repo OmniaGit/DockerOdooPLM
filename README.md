@@ -1,112 +1,200 @@
-# DockerOdooPLM
+# OdooPLM 19.0 — Docker
 
-Ready-to-run Docker images and Compose stacks for **[OdooPLM](https://github.com/OmniaGit/odooplm)** —
-the open source PLM/PDM suite for [Odoo](https://www.odoo.com/) by
-[OmniaSolutions](https://www.omniasolutions.website).
+Docker image and Compose stack for **[OdooPLM](https://github.com/OmniaGit/odooplm)**
+on **Odoo 19.0**, by [OmniaSolutions](https://www.omniasolutions.website).
 
-The goal of this repository is simple: **anyone should be able to get an OdooPLM
-server running for testing with two commands.**
-
-```bash
-git clone --branch 19.0 https://github.com/OmniaGit/DockerOdooPLM.git odooplm && cd odooplm
-docker compose up
-```
-
-Then open <http://localhost:8069> — the database is created and the `plm` module
-is installed automatically on first boot.
+> Other Odoo releases live in the matching branch of this repository:
+> [`18.0`](../../tree/18.0) · [`19.0`](../../tree/19.0) · [index](../../tree/main)
 
 ---
-
-## Versioning
-
-This repository follows the **Odoo version numbering**: one git branch per Odoo
-major release, matching the branch layout of the
-[odooplm](https://github.com/OmniaGit/odooplm) repository itself.
-
-| Branch | Odoo | OdooPLM branch | PostgreSQL | Image tags | Status |
-|---|---|---|---|---|---|
-| [`19.0`](../../tree/19.0) | 19.0 | `19.0` | 17 | `19.0`, `19.0-slim`, `latest`, `latest-slim` | current |
-| [`18.0`](../../tree/18.0) | 18.0 | `18.0` | 16 | `18.0`, `18.0-slim` | supported |
-| `main` | — | — | — | — | this page |
-
-Older Odoo releases (10.0 → 17.0) exist in the `odooplm` repository but are **not**
-packaged here — this repository covers Odoo 18.0 and newer.
-
-When Odoo 20.0 is released, a `20.0` branch is created from the newest branch and
-`latest` moves to it.
-
-## Images
-
-Every branch publishes the same two variants to **both** registries:
-
-| Registry | Image |
-|---|---|
-| GitHub Container Registry | `ghcr.io/omniagit/odooplm` |
-| Docker Hub | `omniasolutions/odooplm` |
-
-| Variant | Tag | Contains | Size |
-|---|---|---|---|
-| **full** | `19.0` | Everything, including the CAD conversion stack (`cadquery`, `OCP`, `vtk`) needed by `plm_automated_convertion` | large (~3 GB) |
-| **slim** | `19.0-slim` | All PLM modules and the 3D/2D web viewer, without the CAD conversion stack | moderate (~1.5 GB) |
-
-Both variants ship **all community OdooPLM modules** in the addons path; only the
-core `plm` module is installed automatically. Everything else is one click away in
-*Apps*. The two Enterprise-only modules (`plm_pdf_workorder_enterprise`,
-`plm_ent_breakages_helpdesk`) are excluded by default.
 
 ## Quick start
 
 ```bash
-# pick the Odoo version you want
 git clone --branch 19.0 https://github.com/OmniaGit/DockerOdooPLM.git odooplm-19
 cd odooplm-19
+docker compose up
+```
 
-cp .env.example .env          # optional: change ports, passwords, db name
-docker compose up -d          # pulls the published image, starts Odoo + PostgreSQL
+Open <http://localhost:8069>.
+
+On the first boot the entrypoint creates the database `odooplm` and installs the
+`plm` module, so you land straight on a working PLM server — no database wizard,
+no *Apps* hunting. Log in with the user you create in the database manager, or
+with `admin` / `admin` if you enabled the demo data.
+
+Everything is configurable, but nothing has to be: copy `.env.example` to `.env`
+only when you want to change ports, passwords, the database name or the modules
+installed at startup.
+
+```bash
+cp .env.example .env
+docker compose up -d
 docker compose logs -f odoo
 ```
 
-* Odoo: <http://localhost:8069> — default master password `admin` (change it!)
-* The database `odooplm` is created on first boot with the `plm` module installed.
+## What is in the image
 
-To build the image yourself instead of pulling it:
+| | |
+|---|---|
+| Base | official `odoo:19.0` image (Ubuntu 24.04, Python 3.12) |
+| PLM modules | the `19.0` branch of [OmniaGit/odooplm](https://github.com/OmniaGit/odooplm), in `/mnt/odooplm-addons` |
+| Your modules | `./addons-extra` of this repository, mounted on `/mnt/extra-addons` |
+| Database | PostgreSQL 17 container |
+| Ports | `8069` web, `8072` websocket (chatter, 3D viewer) |
+| Config | `./config/odoo.conf`, mounted on `/etc/odoo` |
+| Data | named volumes `odoo-data` (filestore) and `db-data` |
+
+All community PLM modules are shipped and visible in *Apps* — `plm_web_3d`,
+`plm_engineering`, `plm_spare`, `plm_pack_and_go`, `plm_web_revision`,
+`plm_automated_convertion`, `plm_date_bom`, … — but only the ones you ask for are
+installed. The two Enterprise-only modules (`plm_pdf_workorder_enterprise`,
+`plm_ent_breakages_helpdesk`) are removed at build time; set
+`--build-arg KEEP_ENTERPRISE_MODULES=1` if you run Odoo Enterprise.
+
+### full vs slim
+
+| Variant | Tag | Difference |
+|---|---|---|
+| full | `19.0`, `latest` | includes `cadquery` / OCP / vtk, required by `plm_automated_convertion` (STEP → 3MF / STL / PNG batch conversion) |
+| slim | `19.0-slim`, `latest-slim` | same modules, ~1.5 GB smaller; installing `plm_automated_convertion` will fail on the missing `cadquery` dependency |
 
 ```bash
-docker compose build          # or: make build
+# use the slim image
+ODOOPLM_IMAGE=ghcr.io/omniagit/odooplm:19.0-slim docker compose up -d
+```
+
+Published on both registries:
+
+```
+ghcr.io/omniagit/odooplm:19.0        omniasolutions/odooplm:19.0
+ghcr.io/omniagit/odooplm:19.0-slim   omniasolutions/odooplm:19.0-slim
+```
+
+## Configuration
+
+All variables have working defaults; see [`.env.example`](.env.example).
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `ODOOPLM_IMAGE` | `ghcr.io/omniagit/odooplm:19.0` | image used by the stack |
+| `ODOO_PORT` | `8069` | host port for the web interface |
+| `ODOO_WEBSOCKET_PORT` | `8072` | host port for websocket/longpolling |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` | `odoo` / `odoo` | database credentials |
+| `ODOOPLM_DB` | `odooplm` | database created on first boot |
+| `ODOOPLM_INIT_MODULES` | `plm` | modules installed in that database |
+| `ODOOPLM_WITH_DEMO` | `0` | `1` loads the Odoo demo data |
+| `ODOOPLM_INIT_LANG` | *(empty)* | extra language to load, e.g. `it_IT` |
+| `ODOOPLM_AUTO_INIT` | `1` | `0` disables the automatic database creation |
+| `ODOOPLM_VARIANT` | `full` | build argument: `full` or `slim` |
+| `ODOOPLM_REF` | `19.0` | build argument: branch/tag/commit of `odooplm` to package |
+
+Want the whole suite installed from the start?
+
+```bash
+ODOOPLM_INIT_MODULES=plm,plm_web_3d,plm_engineering,plm_spare,plm_pack_and_go,plm_web_revision \
+  docker compose up -d
+```
+
+Odoo settings that are not environment variables (workers, limits, master
+password, `dbfilter`…) live in [`config/odoo.conf`](config/odoo.conf). Edit it and
+`docker compose restart odoo`.
+
+> **Before exposing this server:** change `admin_passwd` in `config/odoo.conf`,
+> change `POSTGRES_PASSWORD`, set `list_db = False`, and put a reverse proxy with
+> TLS in front (proxy `8069` and the `/websocket` route to `8072`).
+
+## Everyday commands
+
+A `Makefile` wraps the usual ones — `make help` lists them all.
+
+```bash
+make build            # build the image locally (VARIANT=slim for the small one)
+make up / make down   # start / stop the stack (data kept)
+make logs             # follow the Odoo logs
+make shell            # bash inside the Odoo container
+make odoo-shell       # Odoo python shell on the PLM database
+make psql             # psql on the PLM database
+make update MODULES=plm,plm_web_3d   # upgrade modules and restart
+make destroy          # stop and DELETE the database and filestore
+make smoke-test       # boot, verify, tear down (same check as CI)
+```
+
+Plain docker compose works just as well:
+
+```bash
 docker compose up -d
+docker compose exec odoo odoo -d odooplm --db_host db -u plm --stop-after-init
+docker compose down
 ```
 
-Full instructions, environment variables and troubleshooting live in the README of
-each version branch.
+## Building it yourself
 
-## Repository layout (version branches)
+```bash
+docker compose build                       # full variant
+docker build --build-arg VARIANT=slim -t odooplm:19.0-slim .
 
-```
-Dockerfile               # OdooPLM image on top of the official odoo image
-compose.yaml             # Odoo + PostgreSQL stack
-.env.example             # ports, passwords, database name, auto-install modules
-config/odoo.conf         # Odoo configuration used by the container
-requirements/            # python dependencies of the PLM modules
-scripts/                 # container entrypoint + helper scripts
-addons-extra/            # drop your own addons here, they are mounted read-write
-Makefile                 # make build / up / down / logs / shell / psql
-.github/workflows/       # CI: build, smoke-test and publish the images
+# package a specific state of the PLM sources
+docker build --build-arg ODOOPLM_REF=19.0 -t odooplm:19.0 .
 ```
 
-## Related projects
+The exact PLM commit baked into an image is recorded inside it:
 
-| Project | Description |
+```bash
+docker run --rm --entrypoint cat ghcr.io/omniagit/odooplm:19.0 /etc/odooplm-build-info
+```
+
+## Adding your own modules
+
+Drop them in `addons-extra/` (mounted read-write on `/mnt/extra-addons`), then:
+
+```bash
+docker compose restart odoo
+docker compose exec odoo odoo -d odooplm --db_host db -i your_module --stop-after-init
+```
+
+## Backup and restore
+
+```bash
+# backup (database + filestore)
+docker compose exec -T db pg_dump -U odoo -Fc odooplm > backups/odooplm.dump
+docker run --rm -v odooplm19_odoo-data:/data -v "$PWD/backups:/backup" \
+    busybox tar czf /backup/filestore.tgz -C /data .
+
+# restore
+docker compose exec -T db psql -U odoo -d postgres -c "CREATE DATABASE odooplm OWNER odoo"
+docker compose exec -T db pg_restore -U odoo -d odooplm < backups/odooplm.dump
+docker run --rm -v odooplm19_odoo-data:/data -v "$PWD/backups:/backup" \
+    busybox tar xzf /backup/filestore.tgz -C /data
+```
+
+The database manager at <http://localhost:8069/web/database/manager> does the same
+job through the browser (master password: `admin_passwd` from `config/odoo.conf`).
+
+## CAD client
+
+The desktop connector (SolidWorks, SolidEdge, Inventor, AutoCAD, FreeCAD…) is
+distributed separately: <https://sourceforge.net/projects/openerpplm/>.
+Point it at `http://<host>:8069` with the database `odooplm`.
+
+## Troubleshooting
+
+| Symptom | Fix |
 |---|---|
-| [odooplm](https://github.com/OmniaGit/odooplm) | The PLM modules themselves |
-| [CAD client](https://sourceforge.net/projects/openerpplm/) | Desktop connector for SolidWorks, SolidEdge, Inventor, AutoCAD, FreeCAD… |
-| [Documentation](https://odooplm.omniasolutions.website) | User and administrator documentation |
+| `odoo` container restarts, logs show a database connection error | the `db` container is unhealthy — `docker compose logs db`; a stale `db-data` volume with a different password is the usual cause (`make destroy` to reset) |
+| First boot takes minutes | it does: the database is being created and `plm` installed. Follow `docker compose logs -f odoo` |
+| `Unable to install module ... external dependency cadquery` | you are on the `slim` image — switch `ODOOPLM_IMAGE` to the full tag |
+| 3D viewer shows nothing | check the browser console; the websocket port `8072` must be reachable |
+| Port already in use | set `ODOO_PORT` / `ODOO_WEBSOCKET_PORT` in `.env` |
+| Database already exists but you want a fresh one | `make destroy && make up` |
 
 ## Support
 
-* Issues about **this packaging**: open an issue in this repository.
-* Issues about **the PLM modules**: <https://github.com/OmniaGit/odooplm/issues>
+* Packaging issues: open an issue in this repository.
+* PLM module issues: <https://github.com/OmniaGit/odooplm/issues>
+* Documentation: <https://odooplm.omniasolutions.website>
 * Commercial support: **info@omniasolutions.eu**
 
 ## License
 
-AGPL-3, the same license as the OdooPLM modules. See [LICENSE](LICENSE).
+AGPL-3, like the OdooPLM modules. See [LICENSE](LICENSE).

@@ -1,0 +1,18 @@
+# Python dependencies of the OdooPLM modules that every variant needs.
+# Mirrors the module manifests of https://github.com/OmniaGit/odooplm (branch 19.0).
+
+# plm_pack_and_go
+base64io
+
+# plm_automated_convertion / plm_web_3d — DXF handling and 2D previews
+ezdxf
+matplotlib
+
+# STL import/export helpers
+numpy-stl
+
+# 3MF writer used by the web viewer and the conversion wizard
+to-3mf
+
+# plm_auto_translator (translation import/export)
+polib

@@ -1,0 +1,4 @@
+*
+!config/odoo.conf
+!requirements/
+!scripts/odooplm-entrypoint.sh

@@ -1,0 +1,66 @@
+name: ${COMPOSE_PROJECT_NAME:-odooplm19}
+
+services:
+  odoo:
+    image: ${ODOOPLM_IMAGE:-ghcr.io/omniagit/odooplm:19.0}
+    build:
+      context: .
+      args:
+        ODOO_VERSION: "19.0"
+        ODOOPLM_REF: ${ODOOPLM_REF:-19.0}
+        VARIANT: ${ODOOPLM_VARIANT:-full}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${ODOO_PORT:-8069}:8069"
+      # websocket / longpolling — required by the chatter and the 3D viewer
+      - "${ODOO_WEBSOCKET_PORT:-8072}:8072"
+    environment:
+      # database connection (read by the Odoo entrypoint)
+      HOST: db
+      PORT: 5432
+      USER: ${POSTGRES_USER:-odoo}
+      PASSWORD: ${POSTGRES_PASSWORD:-odoo}
+      # first boot initialisation (read by the OdooPLM entrypoint)
+      ODOOPLM_AUTO_INIT: ${ODOOPLM_AUTO_INIT:-1}
+      ODOOPLM_DB: ${ODOOPLM_DB:-odooplm}
+      ODOOPLM_INIT_MODULES: ${ODOOPLM_INIT_MODULES:-plm}
+      ODOOPLM_WITH_DEMO: ${ODOOPLM_WITH_DEMO:-0}
+      ODOOPLM_INIT_LANG: ${ODOOPLM_INIT_LANG:-}
+    volumes:
+      - odoo-data:/var/lib/odoo
+      - ./config:/etc/odoo
+      - ./addons-extra:/mnt/extra-addons
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8069/web/health', timeout=8).status == 200 else 1)"
+      interval: 30s
+      timeout: 10s
+      start_period: 180s
+      retries: 5
+
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-odoo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-odoo}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-odoo} -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  odoo-data:
+  db-data:
