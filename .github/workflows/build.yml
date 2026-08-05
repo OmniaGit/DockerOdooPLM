@@ -29,6 +29,9 @@ jobs:
   build:
     name: ${{ matrix.variant }}
     runs-on: ubuntu-latest
+    # DOCKERHUB_USERNAME / DOCKERHUB_TOKEN live in this environment; without the
+    # declaration the job cannot see them
+    environment: dockerhub
     permissions:
       contents: read
       packages: write
