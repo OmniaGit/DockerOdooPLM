@@ -94,6 +94,10 @@ jobs:
         run: |
           set -euo pipefail
 
+          # image references must be lowercase; the GitHub owner name is not
+          GHCR_IMAGE="$(echo "$GHCR_IMAGE" | tr '[:upper:]' '[:lower:]')"
+          DOCKERHUB_IMAGE="$(echo "$DOCKERHUB_IMAGE" | tr '[:upper:]' '[:lower:]')"
+
           if [ "$VARIANT" = "full" ]; then
             suffix=""
           else
