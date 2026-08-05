@@ -36,16 +36,53 @@ RUN for sub in plm_web_3d/static/src/js/lib/three.js \
             || git submodule update --init "$sub"; \
     done
 
-# three.js checks out at ~875 MB; the viewer only imports build/ and examples/jsm
-# plus the fonts used by the measurement labels.
+# three.js checks out at ~875 MB, of which the viewer uses about 30: build/ and
+# src/ (the dxf-viewer imports individual modules from there), examples/jsm for the
+# loaders and controls, and examples/fonts for the measurement labels.
 RUN THREE=plm_web_3d/static/src/js/lib/three.js \
     && if [ -d "$THREE" ]; then \
         find "$THREE" -mindepth 1 -maxdepth 1 \
-            ! -name build ! -name examples ! -name LICENSE ! -name package.json \
+            ! -name build ! -name src ! -name examples ! -name LICENSE ! -name package.json \
             -exec rm -rf {} + \
         && find "$THREE/examples" -mindepth 1 -maxdepth 1 \
             ! -name jsm ! -name fonts -exec rm -rf {} + ; \
     fi
+
+# Everything the viewer imports from three.js must still be there. Pruning the
+# wrong directory is invisible until a browser asks for the file and gets a 404,
+# so it is checked here instead.
+RUN python3 - <<'PY'
+import os, re, sys
+
+root = "/src/plm_web_3d/static/src/js"
+bundled = os.path.join(root, "lib/three.js")
+reference = re.compile(r"""['"]([^'"]*three\.js/[^'"]+)['"]""")
+missing, checked = set(), 0
+
+for dirpath, _dirnames, filenames in os.walk(root):
+    if dirpath.startswith(bundled):        # three.js's own internal imports
+        continue
+    for filename in filenames:
+        if not filename.endswith(".js"):
+            continue
+        path = os.path.join(dirpath, filename)
+        with open(path, errors="ignore") as fh:
+            content = fh.read()
+        for ref in reference.findall(content):
+            if ref.startswith(("http://", "https://")):
+                continue
+            target = "/src" + ref if ref.startswith("/") else os.path.normpath(os.path.join(dirpath, ref))
+            checked += 1
+            if not os.path.exists(target):
+                missing.add("%s -> %s" % (os.path.relpath(path, root), ref))
+
+if missing:
+    print("three.js files the viewer imports are missing after pruning:")
+    for item in sorted(missing):
+        print("   ", item)
+    sys.exit(1)
+print("three.js pruning verified: %d imports resolve" % checked)
+PY
 
 RUN if [ "${KEEP_ENTERPRISE_MODULES}" != "1" ]; then \
         rm -rf plm_pdf_workorder_enterprise plm_ent_breakages_helpdesk; \
