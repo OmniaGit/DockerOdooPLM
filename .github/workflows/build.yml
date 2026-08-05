@@ -32,6 +32,10 @@ jobs:
     permissions:
       contents: read
       packages: write
+    # the `secrets` context cannot be used in an `if`, so it goes through the job
+    # environment, which is available to the step conditions
+    env:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
@@ -76,10 +80,7 @@ jobs:
 
       - name: Log in to Docker Hub
         id: dockerhub
-        # the `secrets` context cannot be used in an `if`, so it goes through env
         if: github.event_name != 'pull_request' && env.DOCKERHUB_TOKEN != ''
-        env:
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
