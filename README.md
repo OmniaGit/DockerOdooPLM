@@ -105,9 +105,13 @@ To enable publishing on a fresh fork or repository:
 
 | Where | Name | Value |
 |---|---|---|
-| Settings → Secrets → Actions | `DOCKERHUB_USERNAME` | Docker Hub user |
-| Settings → Secrets → Actions | `DOCKERHUB_TOKEN` | Docker Hub access token |
-| Settings → Variables → Actions | `DOCKERHUB_NAMESPACE` | your Docker Hub namespace — without it the workflow pushes to GHCR only |
+| Secrets | `DOCKERHUB_USERNAME` | Docker Hub user |
+| Secrets | `DOCKERHUB_TOKEN` | Docker Hub access token, used to push the images |
+| Secrets | `DOCKERHUB_PASSWORD` | optional, only for the overview page sync — see below |
+| Variables | `DOCKERHUB_NAMESPACE` | your Docker Hub namespace — without it the workflow pushes to GHCR only |
+
+They can live either in the repository (*Settings → Secrets and variables → Actions*)
+or in an environment named `dockerhub`, which is what the workflows declare.
 
 GHCR needs no configuration — the built-in `GITHUB_TOKEN` is enough. Without the
 Docker Hub secrets the workflow still runs and pushes to GHCR only, with a warning.
@@ -121,6 +125,13 @@ from **this** branch — [`docs/dockerhub-overview.md`](docs/dockerhub-overview.
 by `.github/workflows/dockerhub-description.yml`, on every push that touches that
 file and on demand. Syncing it from a version branch instead would make `18.0` and
 `19.0` overwrite each other's description.
+
+Docker Hub refuses to change a repository description when authenticated with an
+access token — the API answers `403 Forbidden` — so this job needs an account
+password in a separate `DOCKERHUB_PASSWORD` secret. It is optional: pushing images
+does not need it, and without it the job skips with a warning. The alternative is
+to paste `docs/dockerhub-overview.md` into the repository description on Docker Hub
+by hand, which is fine for a page that rarely changes.
 
 ## Related projects
 
