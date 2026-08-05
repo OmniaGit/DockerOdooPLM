@@ -114,6 +114,14 @@ Docker Hub secrets the workflow still runs and pushes to GHCR only, with a warni
 Remember to switch the new `odooplm` package to *public* in the repository
 *Packages* settings, otherwise `docker pull` asks for a login.
 
+### Docker Hub overview page
+
+The Docker Hub repository holds every Odoo version, so its overview page is synced
+from **this** branch — [`docs/dockerhub-overview.md`](docs/dockerhub-overview.md) —
+by `.github/workflows/dockerhub-description.yml`, on every push that touches that
+file and on demand. Syncing it from a version branch instead would make `18.0` and
+`19.0` overwrite each other's description.
+
 ## Related projects
 
 | Project | Description |
