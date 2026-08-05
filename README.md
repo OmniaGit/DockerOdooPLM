@@ -70,8 +70,8 @@ ODOOPLM_IMAGE=ghcr.io/omniagit/odooplm:18.0-slim docker compose up -d
 Published on both registries:
 
 ```
-ghcr.io/omniagit/odooplm:18.0        omniasolutions/odooplm:18.0
-ghcr.io/omniagit/odooplm:18.0-slim   omniasolutions/odooplm:18.0-slim
+ghcr.io/omniagit/odooplm:18.0        mboscolo/odooplm:18.0
+ghcr.io/omniagit/odooplm:18.0-slim   mboscolo/odooplm:18.0-slim
 ```
 
 ## Configuration

@@ -19,7 +19,8 @@ env:
   # the "latest" tags belong to the branch packaging the newest Odoo release
   PUSH_LATEST: "false"
   GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/odooplm
-  DOCKERHUB_IMAGE: ${{ vars.DOCKERHUB_NAMESPACE || 'omniasolutions' }}/odooplm
+  # set the DOCKERHUB_NAMESPACE variable to publish to Docker Hub as well
+  DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
 
 concurrency:
   group: build-${{ github.ref }}
@@ -99,7 +100,7 @@ jobs:
 
           # image references must be lowercase; the GitHub owner name is not
           GHCR_IMAGE="$(echo "$GHCR_IMAGE" | tr '[:upper:]' '[:lower:]')"
-          DOCKERHUB_IMAGE="$(echo "$DOCKERHUB_IMAGE" | tr '[:upper:]' '[:lower:]')"
+          DOCKERHUB_NAMESPACE="$(echo "${DOCKERHUB_NAMESPACE:-}" | tr '[:upper:]' '[:lower:]')"
 
           if [ "$VARIANT" = "full" ]; then
             suffix=""
@@ -113,8 +114,10 @@ jobs:
           fi
 
           registries="$GHCR_IMAGE"
-          if [ "$DOCKERHUB_PUSH" = "true" ]; then
-            registries="$registries $DOCKERHUB_IMAGE"
+          if [ "$DOCKERHUB_PUSH" = "true" ] && [ -n "$DOCKERHUB_NAMESPACE" ]; then
+            registries="$registries docker.io/${DOCKERHUB_NAMESPACE}/odooplm"
+          elif [ "$DOCKERHUB_PUSH" = "true" ]; then
+            echo "::warning::DOCKERHUB_NAMESPACE is not set, pushing to GHCR only"
           else
             echo "::warning::Docker Hub credentials not configured, pushing to GHCR only"
           fi
