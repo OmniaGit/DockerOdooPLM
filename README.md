@@ -42,7 +42,7 @@ Every branch publishes the same two variants to **both** registries:
 | Registry | Image |
 |---|---|
 | GitHub Container Registry | `ghcr.io/omniagit/odooplm` |
-| Docker Hub | `omniasolutions/odooplm` |
+| Docker Hub | `mboscolo/odooplm` |
 
 | Variant | Tag | Contains | On disk |
 |---|---|---|---|
@@ -107,7 +107,7 @@ To enable publishing on a fresh fork or repository:
 |---|---|---|
 | Settings → Secrets → Actions | `DOCKERHUB_USERNAME` | Docker Hub user |
 | Settings → Secrets → Actions | `DOCKERHUB_TOKEN` | Docker Hub access token |
-| Settings → Variables → Actions | `DOCKERHUB_NAMESPACE` | optional, defaults to `omniasolutions` |
+| Settings → Variables → Actions | `DOCKERHUB_NAMESPACE` | your Docker Hub namespace — without it the workflow pushes to GHCR only |
 
 GHCR needs no configuration — the built-in `GITHUB_TOKEN` is enough. Without the
 Docker Hub secrets the workflow still runs and pushes to GHCR only, with a warning.

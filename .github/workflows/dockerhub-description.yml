@@ -21,19 +21,20 @@ jobs:
     # job environment, which is available to the step conditions
     env:
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Update the Docker Hub overview
-        if: env.DOCKERHUB_TOKEN != ''
+        if: env.DOCKERHUB_TOKEN != '' && env.DOCKERHUB_NAMESPACE != ''
         uses: peter-evans/dockerhub-description@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-          repository: ${{ vars.DOCKERHUB_NAMESPACE || 'omniasolutions' }}/odooplm
+          repository: ${{ vars.DOCKERHUB_NAMESPACE }}/odooplm
           readme-filepath: ./docs/dockerhub-overview.md
           short-description: "Odoo + OdooPLM: PLM/PDM server images, one tag per Odoo version"
 
-      - name: Report missing credentials
-        if: env.DOCKERHUB_TOKEN == ''
-        run: echo "::warning::DOCKERHUB_TOKEN is not configured, skipping the description sync"
+      - name: Report missing configuration
+        if: env.DOCKERHUB_TOKEN == '' || env.DOCKERHUB_NAMESPACE == ''
+        run: echo "::warning::DOCKERHUB_TOKEN or DOCKERHUB_NAMESPACE is not configured, skipping the description sync"

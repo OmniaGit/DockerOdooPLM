@@ -17,7 +17,7 @@ docker run -d --name db --network odooplm-net \
 docker run -d --name odooplm --network odooplm-net -p 8069:8069 -p 8072:8072 \
     -e HOST=db -e USER=odoo -e PASSWORD=odoo \
     -v odooplm-data:/var/lib/odoo \
-    omniasolutions/odooplm:19.0
+    mboscolo/odooplm:19.0
 ```
 
 Then open <http://localhost:8069>.
