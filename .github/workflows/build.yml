@@ -96,15 +96,17 @@ jobs:
         # identical image, only the modules installed on first boot differ, so
         # every layer is shared with the plain tag and the push costs a few kB
         run: |
-          printf 'FROM odooplm:ci\nENV ODOOPLM_INIT_MODULES=%s\n' "$DEMO_MODULES" \
+          printf 'FROM odooplm:ci\nENV ODOOPLM_DEFAULT_MODULES=%s\n' "$DEMO_MODULES" \
             | docker build -t odooplm:ci-demo -f - .
 
       - name: Smoke test the demo variant
+        # SMOKE_EXPECT_MODULES, not ODOOPLM_INIT_MODULES: the point is to check
+        # that the image installs its own list the way a user would get it
         env:
           COMPOSE_PROJECT_NAME: odooplm-smoke-demo
           ODOO_PORT: "18169"
           ODOO_WEBSOCKET_PORT: "18172"
-          ODOOPLM_INIT_MODULES: ${{ env.DEMO_MODULES }}
+          SMOKE_EXPECT_MODULES: ${{ env.DEMO_MODULES }}
         run: ./scripts/smoke-test.sh odooplm:ci-demo
 
       - name: Log in to GitHub Container Registry

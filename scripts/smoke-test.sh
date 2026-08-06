@@ -13,7 +13,10 @@ IMAGE="${1:-${ODOOPLM_IMAGE:-odooplm:19.0}}"
 PROJECT="${COMPOSE_PROJECT_NAME:-odooplm-smoke}"
 PORT="${ODOO_PORT:-18069}"
 DB="${ODOOPLM_DB:-odooplm}"
-MODULES="${ODOOPLM_INIT_MODULES:-plm}"
+# Modules the boot is expected to end up with. Set SMOKE_EXPECT_MODULES to check an
+# image that carries its own list (the -demo tags) without forcing it through
+# ODOOPLM_INIT_MODULES — forcing it would test compose, not the image.
+MODULES="${SMOKE_EXPECT_MODULES:-${ODOOPLM_INIT_MODULES:-plm}}"
 TIMEOUT="${SMOKE_TIMEOUT:-600}"
 
 cd "$(dirname "$0")/.."
@@ -23,7 +26,8 @@ export COMPOSE_PROJECT_NAME="$PROJECT"
 export ODOO_PORT="$PORT"
 export ODOO_WEBSOCKET_PORT="${ODOO_WEBSOCKET_PORT:-18072}"
 export ODOOPLM_DB="$DB"
-export ODOOPLM_INIT_MODULES="$MODULES"
+# only forwarded when the caller really set it, so the image keeps deciding otherwise
+if [ -n "${ODOOPLM_INIT_MODULES:-}" ]; then export ODOOPLM_INIT_MODULES; fi
 
 cleanup() {
     local status=$?

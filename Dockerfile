@@ -159,7 +159,7 @@ RUN pip3 install --no-cache-dir --break-system-packages -r /tmp/requirements/plm
 
 ENV ODOOPLM_ADDONS=/mnt/odooplm-addons \
     ODOOPLM_DB=odooplm \
-    ODOOPLM_INIT_MODULES=plm \
+    ODOOPLM_DEFAULT_MODULES=plm \
     ODOOPLM_AUTO_INIT=1 \
     ODOOPLM_WITH_DEMO=0
 

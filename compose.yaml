@@ -19,16 +19,19 @@ services:
       - "${ODOO_WEBSOCKET_PORT:-8072}:8072"
     environment:
       # database connection (read by the Odoo entrypoint)
-      HOST: db
-      PORT: 5432
-      USER: ${POSTGRES_USER:-odoo}
-      PASSWORD: ${POSTGRES_PASSWORD:-odoo}
+      - HOST=db
+      - PORT=5432
+      - USER=${POSTGRES_USER:-odoo}
+      - PASSWORD=${POSTGRES_PASSWORD:-odoo}
       # first boot initialisation (read by the OdooPLM entrypoint)
-      ODOOPLM_AUTO_INIT: ${ODOOPLM_AUTO_INIT:-1}
-      ODOOPLM_DB: ${ODOOPLM_DB:-odooplm}
-      ODOOPLM_INIT_MODULES: ${ODOOPLM_INIT_MODULES:-plm}
-      ODOOPLM_WITH_DEMO: ${ODOOPLM_WITH_DEMO:-0}
-      ODOOPLM_INIT_LANG: ${ODOOPLM_INIT_LANG:-}
+      - ODOOPLM_AUTO_INIT=${ODOOPLM_AUTO_INIT:-1}
+      - ODOOPLM_DB=${ODOOPLM_DB:-odooplm}
+      # left empty on purpose: compose cannot omit a key it declares, so any
+      # default here would shadow the list the image carries — which is how the
+      # -demo tags know what to install. Empty means "whatever this image says".
+      - ODOOPLM_INIT_MODULES=${ODOOPLM_INIT_MODULES:-}
+      - ODOOPLM_WITH_DEMO=${ODOOPLM_WITH_DEMO:-0}
+      - ODOOPLM_INIT_LANG=${ODOOPLM_INIT_LANG:-}
     volumes:
       - odoo-data:/var/lib/odoo
       - ./config:/etc/odoo

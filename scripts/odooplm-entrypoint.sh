@@ -9,7 +9,10 @@
 # Configuration:
 #   ODOOPLM_AUTO_INIT     1 to create/initialise the database on first boot (default 1)
 #   ODOOPLM_DB            database created on first boot                    (default odooplm)
-#   ODOOPLM_INIT_MODULES  comma separated modules to install                (default plm)
+#   ODOOPLM_INIT_MODULES  comma separated modules to install                (default: see below)
+#   ODOOPLM_DEFAULT_MODULES  what this image installs when the above is unset or
+#                            empty; baked into the image (plm, or the demo set for
+#                            the -demo tags) and not meant to be set by hand
 #   ODOOPLM_WITH_DEMO     1 to load Odoo demo data                          (default 0)
 #   ODOOPLM_INIT_LANG     language to load, e.g. it_IT                      (default none)
 #   ODOOPLM_DB_TIMEOUT    seconds to wait for PostgreSQL                    (default 60)
@@ -18,7 +21,12 @@ set -e
 
 : "${ODOOPLM_AUTO_INIT:=1}"
 : "${ODOOPLM_DB:=odooplm}"
-: "${ODOOPLM_INIT_MODULES:=plm}"
+# Compose cannot leave out an environment key it declares: an unset variable is
+# passed with no value and shadows whatever the image itself declared. So the
+# per-image list lives in its own variable, and ODOOPLM_INIT_MODULES only has to
+# say what the *user* asked for.
+: "${ODOOPLM_DEFAULT_MODULES:=plm}"
+: "${ODOOPLM_INIT_MODULES:=${ODOOPLM_DEFAULT_MODULES}}"
 : "${ODOOPLM_WITH_DEMO:=0}"
 : "${ODOOPLM_INIT_LANG:=}"
 : "${ODOOPLM_DB_TIMEOUT:=60}"
