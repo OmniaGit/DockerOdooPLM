@@ -64,11 +64,29 @@ installed. The two Enterprise-only modules (`plm_pdf_workorder_enterprise`,
 ODOOPLM_IMAGE=ghcr.io/omniagit/odooplm:19.0-slim docker compose up -d
 ```
 
+### demo data
+
+Every variant also has a `-demo` tag. Same image, same layers — the only
+difference is what the entrypoint installs on the first boot: `plm_demo`, which
+fills the database with the **LSU-100** sample product (12 parts over three BOM
+levels, a spare part BOM, 30 STEP/3MF/DXF/PDF documents with previews, document
+relations and 3D markups).
+
+```bash
+# a populated PLM to look at, instead of an empty one
+ODOOPLM_IMAGE=ghcr.io/omniagit/odooplm:19.0-demo docker compose up -d
+```
+
+It is meant for evaluation, demonstrations and training — not for production.
+The plain tags stay empty and install `plm` only.
+
 Published on both registries:
 
 ```
-ghcr.io/omniagit/odooplm:19.0        mboscolo/odooplm:19.0
-ghcr.io/omniagit/odooplm:19.0-slim   mboscolo/odooplm:19.0-slim
+ghcr.io/omniagit/odooplm:19.0             mboscolo/odooplm:19.0
+ghcr.io/omniagit/odooplm:19.0-slim        mboscolo/odooplm:19.0-slim
+ghcr.io/omniagit/odooplm:19.0-demo        mboscolo/odooplm:19.0-demo
+ghcr.io/omniagit/odooplm:19.0-slim-demo   mboscolo/odooplm:19.0-slim-demo
 ```
 
 ## Configuration

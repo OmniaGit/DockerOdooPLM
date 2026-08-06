@@ -21,6 +21,8 @@ env:
   GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/odooplm
   # set the DOCKERHUB_NAMESPACE variable to publish to Docker Hub as well
   DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
+  # what the -demo tags install on first boot
+  DEMO_MODULES: plm,plm_spare,plm_web_3d,plm_demo
 
 concurrency:
   group: build-${{ github.ref }}
@@ -74,6 +76,21 @@ jobs:
       - name: Smoke test
         run: ./scripts/smoke-test.sh odooplm:ci
 
+      - name: Build the demo variant
+        # identical image, only the modules installed on first boot differ, so
+        # every layer is shared with the plain tag and the push costs a few kB
+        run: |
+          printf 'FROM odooplm:ci\nENV ODOOPLM_INIT_MODULES=%s\n' "$DEMO_MODULES" \
+            | docker build -t odooplm:ci-demo -f - .
+
+      - name: Smoke test the demo variant
+        env:
+          COMPOSE_PROJECT_NAME: odooplm-smoke-demo
+          ODOO_PORT: "18169"
+          ODOO_WEBSOCKET_PORT: "18172"
+          ODOOPLM_INIT_MODULES: ${{ env.DEMO_MODULES }}
+        run: ./scripts/smoke-test.sh odooplm:ci-demo
+
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
@@ -109,8 +126,10 @@ jobs:
           fi
 
           tags="${ODOO_VERSION}${suffix} ${ODOO_VERSION}${suffix}-build${GITHUB_RUN_NUMBER}"
+          demo_tags="${ODOO_VERSION}${suffix}-demo"
           if [ "$PUSH_LATEST" = "true" ]; then
             tags="$tags latest${suffix}"
+            demo_tags="$demo_tags latest${suffix}-demo"
           fi
 
           registries="$GHCR_IMAGE"
@@ -126,6 +145,11 @@ jobs:
             for tag in $tags; do
               echo ">>> $image:$tag"
               docker tag odooplm:ci "$image:$tag"
+              docker push "$image:$tag"
+            done
+            for tag in $demo_tags; do
+              echo ">>> $image:$tag (demo data)"
+              docker tag odooplm:ci-demo "$image:$tag"
               docker push "$image:$tag"
             done
           done
