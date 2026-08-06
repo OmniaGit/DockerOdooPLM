@@ -16,6 +16,12 @@ FROM odoo:${ODOO_VERSION} AS sources
 
 ARG ODOOPLM_REPO=https://github.com/OmniaGit/odooplm.git
 ARG ODOOPLM_REF=19.0
+# Full commit sha to package. Nothing in the clone command changes when odooplm
+# gets a new commit, so with a layer cache the build would happily reuse the
+# sources it cloned weeks ago. Pinning the sha moves the cache key with the branch
+# and makes the build reproducible; CI resolves it with `git ls-remote`, local
+# builds can leave it empty and get whatever the ref points at today.
+ARG ODOOPLM_SHA=
 # Modules that need Odoo Enterprise to be installable. Set to 1 to keep them.
 ARG KEEP_ENTERPRISE_MODULES=0
 
@@ -24,7 +30,20 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-RUN git clone --depth 1 --branch "${ODOOPLM_REF}" "${ODOOPLM_REPO}" /src
+# A shallow fetch of one sha needs the full 40 characters and a server that serves
+# it; anything else (an abbreviated sha, a mirror that refuses) falls back to the
+# branch tip rather than failing the build.
+RUN if [ -n "${ODOOPLM_SHA}" ] \
+       && git init -q /src \
+       && git -C /src remote add origin "${ODOOPLM_REPO}" \
+       && git -C /src fetch -q --depth 1 origin "${ODOOPLM_SHA}"; then \
+        git -C /src checkout -q --detach FETCH_HEAD; \
+    else \
+        [ -z "${ODOOPLM_SHA}" ] || echo "cannot fetch ${ODOOPLM_SHA}, taking the tip of ${ODOOPLM_REF}" >&2; \
+        rm -rf /src; \
+        git clone --depth 1 --branch "${ODOOPLM_REF}" "${ODOOPLM_REPO}" /src; \
+    fi \
+    && echo "odooplm ${ODOOPLM_REF} at $(git -C /src rev-parse HEAD)"
 
 WORKDIR /src
 

@@ -60,6 +60,21 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
+      - name: Resolve the odooplm commit
+        # the clone command never changes, so without this the cached layer would
+        # keep the sources from whenever the cache was filled — the weekly rebuild
+        # has to see the branch move
+        id: sources
+        run: |
+          sha="$(git ls-remote "https://github.com/OmniaGit/odooplm.git" \
+                   "refs/heads/${ODOOPLM_REF}" | cut -f1)"
+          if [ -z "$sha" ]; then
+            echo "::error::cannot resolve refs/heads/${ODOOPLM_REF} on odooplm"
+            exit 1
+          fi
+          echo "odooplm ${ODOOPLM_REF} is at $sha"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
       - name: Build image
         uses: docker/build-push-action@v6
         with:
@@ -69,6 +84,7 @@ jobs:
           build-args: |
             ODOO_VERSION=${{ env.ODOO_VERSION }}
             ODOOPLM_REF=${{ env.ODOOPLM_REF }}
+            ODOOPLM_SHA=${{ steps.sources.outputs.sha }}
             VARIANT=${{ matrix.variant }}
           cache-from: type=gha,scope=${{ matrix.variant }}
           cache-to: type=gha,mode=max,scope=${{ matrix.variant }}
