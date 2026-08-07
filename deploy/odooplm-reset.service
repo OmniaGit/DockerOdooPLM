@@ -1,0 +1,19 @@
+[Unit]
+Description=Reset the OdooPLM demo instance (delete the data, rebuild it)
+Documentation=https://github.com/OmniaGit/DockerOdooPLM
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+# Adapt if you cloned the repository somewhere else.
+WorkingDirectory=/opt/odooplm-19
+ExecStart=/opt/odooplm-19/scripts/reset-demo.sh
+# A container that answers HTTP is not proof the demo data came back. Fail the
+# unit unless these are really installed once the instance is up.
+Environment=RESET_EXPECT_MODULES=plm,plm_demo
+# Pulling the image and reinstalling the modules takes minutes, not seconds.
+TimeoutStartSec=2400
+# Output goes to the journal: journalctl -u odooplm-reset.service
+StandardOutput=journal
+StandardError=journal

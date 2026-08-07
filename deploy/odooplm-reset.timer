@@ -1,0 +1,20 @@
+[Unit]
+Description=Weekly reset of the OdooPLM demo instance
+Documentation=https://github.com/OmniaGit/DockerOdooPLM
+
+[Timer]
+# Sunday night, 23:30 — the instance is fresh again for Monday morning.
+# Other useful values:
+#   Mon *-*-* 03:00:00        the night from Sunday to Monday
+#   Sun *-*-* 03:00:00        early Sunday morning
+# Append a timezone if the server clock is not the one you care about:
+#   OnCalendar=Sun *-*-* 23:30:00 Europe/Rome
+OnCalendar=Sun *-*-* 23:30:00
+# If the server was off at that moment, reset as soon as it comes back.
+Persistent=true
+# Spread the load: start anywhere in the first five minutes.
+RandomizedDelaySec=300
+Unit=odooplm-reset.service
+
+[Install]
+WantedBy=timers.target

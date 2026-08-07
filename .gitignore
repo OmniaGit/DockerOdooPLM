@@ -6,6 +6,8 @@
 # --- runtime data ------------------------------------------------------------
 filestore/
 backups/
+# TLS certificates issued to the deployment, never to the repository
+deploy/caddy/
 *.dump
 *.zip
 *.log

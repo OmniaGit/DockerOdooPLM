@@ -135,6 +135,7 @@ make odoo-shell       # Odoo python shell on the PLM database
 make psql             # psql on the PLM database
 make update MODULES=plm,plm_web_3d   # upgrade modules and restart
 make destroy          # stop and DELETE the database and filestore
+make reset            # destroy, pull, start again — a fresh instance
 make smoke-test       # boot, verify, tear down (same check as CI)
 ```
 
@@ -144,6 +145,31 @@ Plain docker compose works just as well:
 docker compose up -d
 docker compose exec odoo odoo -d odooplm --db_host db -u plm --stop-after-init
 docker compose down
+```
+
+## Running it as a demo server
+
+[`deploy/`](deploy/README.md) is a complete runbook for putting this stack on a
+Linux server behind HTTPS, with a systemd timer that deletes the data and
+rebuilds the instance every Sunday night — visitors get a clean PLM every
+Monday, and nothing anyone leaves behind survives the week.
+
+```bash
+sudo git clone --branch 19.0 https://github.com/OmniaGit/DockerOdooPLM.git /opt/odooplm-19
+cd /opt/odooplm-19
+sudo ./deploy/install.sh --hostname plm-demo.example.com --email you@example.com
+```
+
+The installer writes the two files a clone cannot carry — `.env` and a
+`config/odoo.conf` fit for a public server — generating the passwords itself,
+installs the timer and verifies the demo data landed.
+
+The reset itself is one script — `make reset` runs it by hand:
+
+```bash
+docker compose down --volumes   # delete the database and the filestore
+docker compose pull             # take the latest demo image
+docker compose up -d            # the entrypoint rebuilds everything
 ```
 
 ## Building it yourself

@@ -40,6 +40,10 @@ down: ## Stop the stack (data is kept)
 destroy: ## Stop the stack and DELETE the database and filestore
 	$(COMPOSE) down --remove-orphans --volumes
 
+.PHONY: reset
+reset: ## Delete the data and rebuild the instance from scratch (what the weekly timer runs)
+	./scripts/reset-demo.sh
+
 .PHONY: restart
 restart: ## Restart the Odoo container
 	$(COMPOSE) restart odoo
