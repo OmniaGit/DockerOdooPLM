@@ -36,6 +36,10 @@ docker compose version >/dev/null 2>&1 || die "the docker compose plugin is not 
 
 [ -f compose.yaml ] || die "compose.yaml not found in $PWD"
 
+# Before deleting anything: if compose cannot read the project, the reset would
+# tear the instance down and then fail to bring it back.
+check_compose_config
+
 log "resetting the instance in $PWD"
 
 # --volumes deletes odoo-data (filestore) and db-data (PostgreSQL) — that is the

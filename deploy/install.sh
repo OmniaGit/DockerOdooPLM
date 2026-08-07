@@ -139,6 +139,10 @@ if [ "$WITH_START" = "0" ]; then
     exit 0
 fi
 
+# Now that .env is in place, make sure compose can actually read the project —
+# a stale one from an older clone would otherwise fail every command below.
+check_compose_config
+
 log "pulling the images (this takes a while the first time: the full image is ~4.4 GB)"
 docker compose pull --quiet || log "WARNING: pull failed, using whatever is on disk"
 

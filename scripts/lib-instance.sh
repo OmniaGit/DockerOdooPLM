@@ -6,6 +6,27 @@
 log() { echo "[${SCRIPT_NAME:-odooplm}] $*"; }
 die() { echo "[${SCRIPT_NAME:-odooplm}] ERROR: $*" >&2; exit 1; }
 
+# check_compose_config
+#
+# Fail early, with an explanation, when docker compose cannot read the project.
+# The usual cause is a .env left over from an older version of this repository:
+# it is deliberately never overwritten, so a COMPOSE_FILE naming a file that has
+# since been deleted keeps breaking every command with a bare `stat: no such
+# file or directory`.
+check_compose_config() {
+    local err
+    err="$(docker compose config -q 2>&1)" && return 0
+
+    if grep -q 'compose\.proxy\.yaml' <<<"$err"; then
+        die "your .env still points at deploy/compose.proxy.yaml, which no longer \
+exists — this stack ships no reverse proxy any more. Remove the line with:
+    sed -i '/^COMPOSE_FILE=/d' .env
+then run this again."
+    fi
+    die "docker compose cannot read this project:
+${err}"
+}
+
 # wait_healthy <seconds>
 #
 # Block until the odoo container reports healthy, or fail. Uses the healthcheck
