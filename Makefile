@@ -45,8 +45,8 @@ reset: ## Delete the data and rebuild the instance from scratch (what the weekly
 	./scripts/reset-demo.sh
 
 .PHONY: restart
-restart: ## Restart the Odoo container
-	$(COMPOSE) restart odoo
+restart: ## Apply .env / config/odoo.conf changes and restart (data kept)
+	./scripts/restart.sh
 
 .PHONY: logs
 logs: ## Follow the Odoo logs
