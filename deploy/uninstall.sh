@@ -69,7 +69,12 @@ cd "$REPO" 2>/dev/null || die "cannot enter ${REPO}"
 
 # The compose project name decides what gets removed when compose itself cannot
 # be used (a deleted .env, a broken compose file).
-PROJECT="$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' .env 2>/dev/null | tr -d '"'\''' | head -1)"
+# Guarded by -f: sed exits 2 on a missing file, and under `set -e` with pipefail
+# that would kill the script here — silently, before anything is removed.
+PROJECT=""
+if [ -f .env ]; then
+    PROJECT="$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' .env | tr -d '"'\''' | head -1)"
+fi
 : "${PROJECT:=odooplm19}"
 
 UNITS=(/etc/systemd/system/odooplm-reset.service /etc/systemd/system/odooplm-reset.timer)
@@ -150,7 +155,8 @@ fi
 # --- images ------------------------------------------------------------------
 
 if [ "$WITH_IMAGES" = "1" ]; then
-    image="$(sed -n 's/^ODOOPLM_IMAGE=//p' .env 2>/dev/null | head -1)"
+    image=""
+    [ -f .env ] && image="$(sed -n 's/^ODOOPLM_IMAGE=//p' .env | head -1)"
     : "${image:=ghcr.io/omniagit/odooplm:19.0-demo}"
     log "removing the images"
     docker image rm "$image" postgres:17 >/dev/null 2>&1 \
