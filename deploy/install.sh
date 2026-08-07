@@ -21,9 +21,16 @@
 #   --schedule EXPR    systemd OnCalendar expression for the weekly reset
 #                      (default "Sun *-*-* 23:30:00")
 #   --image REF        image to run (default ghcr.io/omniagit/odooplm:19.0-demo)
+#   --port N           host port for Odoo (default 8069, or the next free one)
+#   --ws-port N        host port for the websocket (default 8072, likewise)
 #   --no-timer         configure and start, but do not install the weekly reset
 #   --no-start         write the configuration only, start nothing
 #   --force-config     overwrite an existing config/odoo.conf (a backup is kept)
+#
+# When it generates the .env it picks the next free port if the default is taken
+# — a box that already runs an Odoo holds 8069. An .env you already have is never
+# changed: if its port is busy the install stops and says so, because moving it
+# silently would break the reverse proxy you configured against it.
 #
 set -euo pipefail
 
@@ -40,11 +47,15 @@ WITH_TIMER=1
 WITH_START=1
 FORCE_CONFIG=0
 EXPECT_MODULES="plm,plm_demo"
+PORT_ARG=""
+WS_PORT_ARG=""
 
 while [ $# -gt 0 ]; do
     case "$1" in
         --schedule) SCHEDULE="${2:?--schedule needs a value}"; shift 2 ;;
         --image)    IMAGE="${2:?--image needs a value}"; shift 2 ;;
+        --port)     PORT_ARG="${2:?--port needs a value}"; shift 2 ;;
+        --ws-port)  WS_PORT_ARG="${2:?--ws-port needs a value}"; shift 2 ;;
         --no-timer) WITH_TIMER=0; shift ;;
         --no-start) WITH_START=0; shift ;;
         --force-config) FORCE_CONFIG=1; shift ;;
@@ -82,14 +93,65 @@ newpass() {
     printf '%s' "${out:0:32}"
 }
 
+# Docker only discovers a busy port when it starts the container — several
+# minutes in, after the image has been pulled. Settle the ports up front.
+# Without ss we cannot tell, so assume free and let docker be the judge.
+port_free() {
+    command -v ss >/dev/null || return 0
+    ! ss -ltn "sport = :${1}" 2>/dev/null | grep -q LISTEN
+}
+port_holder() {
+    ss -ltnp "sport = :${1}" 2>/dev/null \
+        | sed -n 's/.*users:((\("[^"]*"\).*/\1/p' | head -1
+}
+next_free_port() {
+    local port="$1" limit=$(( $1 + 100 ))
+    while [ "$port" -le "$limit" ]; do
+        port_free "$port" && { printf '%s' "$port"; return 0; }
+        port=$(( port + 1 ))
+    done
+    return 1
+}
+
 if [ -f .env ]; then
     log "keeping the .env already in ${REPO} (delete it to have one generated)"
+    # Do not touch the ports it declares — a reverse proxy is pointed at them.
+    # Just refuse to go further if they cannot be bound.
+    for spec_var in ODOO_PORT ODOO_WEBSOCKET_PORT; do
+        spec="$(sed -n "s/^${spec_var}=//p" .env | head -1)"
+        [ -n "$spec" ] || continue
+        port="${spec##*:}"
+        port_free "$port" || die "${spec_var} is ${port}, and that port is already \
+in use$(h="$(port_holder "$port")"; [ -n "$h" ] && echo " by ${h}") — stop that service, \
+or edit ${spec_var} in .env and point your reverse proxy at the new port."
+    done
 else
     log "writing .env"
+    web_port="${PORT_ARG:-8069}"
+    ws_port="${WS_PORT_ARG:-8072}"
+
+    # A box that already runs an Odoo holds 8069/8072. Step aside rather than
+    # failing — but never silently past a port the operator asked for.
+    for role in web ws; do
+        [ "$role" = web ] && { port="$web_port"; forced="$PORT_ARG"; } \
+                          || { port="$ws_port";  forced="$WS_PORT_ARG"; }
+        port_free "$port" && continue
+        holder="$(port_holder "$port")"
+        [ -z "$forced" ] || die "port ${port} is already in use${holder:+ by ${holder}} \
+— you asked for it explicitly, so I am not moving it."
+        free="$(next_free_port $(( port + 100 )))" \
+            || die "port ${port} is in use${holder:+ by ${holder}} and nothing is free \
+near $(( port + 100 )) either — pass --port / --ws-port with a port you know is free."
+        log "port ${port} is in use${holder:+ by ${holder}} — using ${free} instead"
+        [ "$role" = web ] && web_port="$free" || ws_port="$free"
+    done
+
     pg_password="$(newpass)"
     # Values are alphanumeric by construction, so a plain | delimiter is safe.
     sed -e "s|^ODOOPLM_IMAGE=.*|ODOOPLM_IMAGE=${IMAGE}|" \
         -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${pg_password}|" \
+        -e "s|^ODOO_PORT=.*|ODOO_PORT=127.0.0.1:${web_port}|" \
+        -e "s|^ODOO_WEBSOCKET_PORT=.*|ODOO_WEBSOCKET_PORT=127.0.0.1:${ws_port}|" \
         deploy/env.demo-server.example > .env
     # It holds the database password.
     chmod 600 .env
@@ -142,6 +204,7 @@ fi
 # Now that .env is in place, make sure compose can actually read the project —
 # a stale one from an older clone would otherwise fail every command below.
 check_compose_config
+
 
 log "pulling the images (this takes a while the first time: the full image is ~4.4 GB)"
 docker compose pull --quiet || log "WARNING: pull failed, using whatever is on disk"
