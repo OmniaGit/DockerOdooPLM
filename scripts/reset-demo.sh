@@ -36,13 +36,12 @@ docker compose version >/dev/null 2>&1 || die "the docker compose plugin is not 
 
 [ -f compose.yaml ] || die "compose.yaml not found in $PWD"
 
-# COMPOSE_FILE / COMPOSE_PROJECT_NAME in .env are read by docker compose itself,
-# so the reverse proxy is included here as soon as it is configured there.
 log "resetting the instance in $PWD"
 
 # --volumes deletes odoo-data (filestore) and db-data (PostgreSQL) — that is the
-# whole point of this script. Anything mounted from the host (config/, the Caddy
-# certificates, addons-extra/) is a bind mount and survives.
+# whole point of this script. Anything mounted from the host (config/odoo.conf,
+# addons-extra/) is a bind mount and survives. Nothing outside this compose
+# project is touched, so a reverse proxy running elsewhere keeps going.
 log "stopping the stack and deleting its volumes"
 docker compose down --volumes --remove-orphans
 

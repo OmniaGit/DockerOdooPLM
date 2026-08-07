@@ -1,17 +1,20 @@
-# Public demo server, rebuilt every Sunday night
+# Demo server, rebuilt every Sunday night
 
-How to run the OdooPLM 19.0 demo instance on a Linux server, behind HTTPS, so
-that every Sunday at 23:30 it deletes its data and comes back exactly as it was
-on the first boot.
+How to run the OdooPLM 19.0 demo instance on a Linux server so that every Sunday
+at 23:30 it deletes its data and comes back exactly as it was on the first boot.
+
+TLS and the public hostname are **not** handled here. Odoo is published on
+`127.0.0.1` only; putting your own reverse proxy (nginx, Traefik, HAProxy…) in
+front of it is your job — see [What your reverse proxy
+needs](#what-your-reverse-proxy-needs) at the end.
 
 What is in this folder:
 
 | File | Role |
 |---|---|
+| `install.sh` | does the whole setup below in one command |
 | `env.demo-server.example` | the `.env` to copy to the repository root |
-| `compose.proxy.yaml` | overlay adding Caddy (automatic HTTPS) in front of Odoo |
-| `Caddyfile` | the proxy configuration |
-| `odoo.public.conf` | `config/odoo.conf` hardened for a public server |
+| `odoo.public.conf` | `config/odoo.conf` hardened for a server |
 | `odooplm-reset.service` | the reset, as a systemd oneshot unit |
 | `odooplm-reset.timer` | when it runs |
 
@@ -24,33 +27,33 @@ available as `make reset`.
 
 * A Linux server (Debian 12 / Ubuntu 22.04+ / RHEL 9 all work), 4 GB RAM
   minimum — 8 GB if you keep the full CAD image — and ~15 GB of free disk.
-* Docker Engine with the Compose plugin, ports 80 and 443 free.
-* A DNS record for the public name **already pointing at the server**: Caddy
-  asks Let's Encrypt for the certificate on the first start and fails without it.
+* Docker Engine with the Compose plugin.
+* **Root.** Every command on this page is written to be run as root, because a
+  stock Debian does not install `sudo` at all — become root with `su -` first.
+  (Prefix them with `sudo` instead if your server does have it.)
 
 Install Docker from the official repository (the distribution packages are often
 too old for `docker compose`):
 
 ```bash
-curl -fsSL https://get.docker.com | sudo sh
-sudo systemctl enable --now docker
+curl -fsSL https://get.docker.com | sh
+systemctl enable --now docker
 ```
 
 ## The short way
 
-Clone, then run the installer — it writes the two files a clone cannot carry,
-installs the timer, starts the stack and checks the demo data really landed:
-
 ```bash
-sudo git clone --branch 19.0 https://github.com/OmniaGit/DockerOdooPLM.git /opt/odooplm-19
+git clone --branch 19.0 https://github.com/OmniaGit/DockerOdooPLM.git /opt/odooplm-19
 cd /opt/odooplm-19
-sudo ./deploy/install.sh --hostname plm-demo.example.com --email you@example.com
+./deploy/install.sh
 ```
 
-It generates the database and master passwords itself, points the systemd units
-at wherever you cloned the repository, and never overwrites a `.env` or an
-`odoo.conf` you have already adapted — so running it twice is safe. `--help`
-lists the options (`--schedule`, `--image`, `--no-timer`, `--no-start`).
+It writes the two files a clone cannot carry, generates the database and master
+passwords itself, points the systemd units at wherever you cloned the
+repository, starts the stack and checks the demo data really landed. It never
+overwrites a `.env` or an `odoo.conf` you have already adapted, so running it
+twice is safe. `--help` lists the options (`--schedule`, `--image`,
+`--no-timer`, `--no-start`, `--force-config`).
 
 The rest of this page is the same install done by hand, and everything you need
 afterwards.
@@ -58,36 +61,31 @@ afterwards.
 ## 1. Get the code
 
 ```bash
-sudo git clone --branch 19.0 https://github.com/OmniaGit/DockerOdooPLM.git /opt/odooplm-19
+git clone --branch 19.0 https://github.com/OmniaGit/DockerOdooPLM.git /opt/odooplm-19
 cd /opt/odooplm-19
 ```
 
-`/opt/odooplm-19` is the path hard-coded in `odooplm-reset.service`; if you
-clone somewhere else, edit `WorkingDirectory` and `ExecStart` in that file.
+`/opt/odooplm-19` is the path written in `odooplm-reset.service`; if you clone
+somewhere else, edit `WorkingDirectory` and `ExecStart` in that file. (`install.sh`
+does that substitution for you.)
 
 ## 2. Configure
 
 ```bash
-sudo cp deploy/env.demo-server.example .env
-sudo cp deploy/odoo.public.conf config/odoo.conf
-sudo nano .env            # ODOOPLM_HOSTNAME, ACME_EMAIL, POSTGRES_PASSWORD
-sudo nano config/odoo.conf   # admin_passwd
+cp deploy/env.demo-server.example .env
+cp deploy/odoo.public.conf config/odoo.conf
+nano .env               # POSTGRES_PASSWORD
+nano config/odoo.conf   # admin_passwd
 ```
 
-Three values must change before the first start — the file marks them
-`CHANGE-ME`:
+Two values must change before the first start — both marked `CHANGE-ME`:
 
 | Where | Value | Why |
 |---|---|---|
-| `.env` | `ODOOPLM_HOSTNAME` | the name on the certificate |
-| `.env` | `POSTGRES_PASSWORD` | `odoo`/`odoo` on a public host is an open database |
+| `.env` | `POSTGRES_PASSWORD` | `odoo`/`odoo` on a server is an open database |
 | `config/odoo.conf` | `admin_passwd` | it guards the database manager |
 
-Generate passwords with `openssl rand -base64 24`.
-
-The `.env` sets `COMPOSE_FILE=compose.yaml:deploy/compose.proxy.yaml`, so plain
-`docker compose` and every `make` target include the proxy from now on — no
-`-f` to remember, and the reset script picks it up too.
+Generate them with `openssl rand -base64 24`.
 
 Two settings worth knowing about, both already set for you:
 
@@ -100,28 +98,25 @@ Two settings worth knowing about, both already set for you:
 ## 3. Start it
 
 ```bash
-sudo docker compose up -d
-sudo docker compose logs -f odoo
+docker compose up -d
+docker compose logs -f odoo
 ```
 
 The first boot takes a few minutes: it creates the database, installs the PLM
-modules and the demo product. When the log goes quiet, open
-`https://<your hostname>` and log in with `admin` / `admin`.
-
-If the site does not answer, look at the proxy first — a missing or wrong DNS
-record is the usual cause:
+modules and the demo product. Then check it locally, before any proxy is
+involved:
 
 ```bash
-sudo docker compose logs caddy
+curl -I http://127.0.0.1:8069/web/health     # 200
 ```
 
 To confirm the demo data really landed — the LSU-100 product is 12 parts over
 three BOM levels:
 
 ```bash
-sudo docker compose exec db psql -U odoo -d odooplm -tAc \
+docker compose exec db psql -U odoo -d odooplm -tAc \
   "SELECT count(*) FROM product_template"          # 12
-sudo docker compose exec db psql -U odoo -d odooplm -tAc \
+docker compose exec db psql -U odoo -d odooplm -tAc \
   "SELECT name FROM ir_module_module WHERE name LIKE 'plm%' AND state='installed'"
 ```
 
@@ -132,16 +127,16 @@ first boot.
 ## 4. Install the weekly reset
 
 ```bash
-sudo cp deploy/odooplm-reset.service deploy/odooplm-reset.timer /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now odooplm-reset.timer
+cp deploy/odooplm-reset.service deploy/odooplm-reset.timer /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now odooplm-reset.timer
 ```
 
 Check it:
 
 ```bash
 systemctl list-timers odooplm-reset.timer    # when it fires next
-sudo systemctl start odooplm-reset.service   # run it now, as a test
+systemctl start odooplm-reset.service   # run it now, as a test
 journalctl -u odooplm-reset.service -f       # watch it work
 ```
 
@@ -178,15 +173,14 @@ Step 2 is deliberately non-fatal: the volumes are already deleted by then, so a
 registry outage restarts from the image on disk rather than leaving the server
 down for a week.
 
-What survives a reset, because it is a bind mount and not a volume:
-`config/odoo.conf`, `addons-extra/`, `.env`, and the Caddy certificates in
-`deploy/caddy/` — which is why they are stored there and not in a named volume.
-Everything a visitor did inside Odoo is gone.
+Only this compose project is touched. A reverse proxy running outside it — as a
+system service or in its own compose stack — keeps serving throughout, and will
+return 502 for the two minutes the rebuild takes.
 
 ### Changing the schedule
 
 Edit `OnCalendar` in `/etc/systemd/system/odooplm-reset.timer`, then
-`sudo systemctl daemon-reload && sudo systemctl restart odooplm-reset.timer`.
+`systemctl daemon-reload && systemctl restart odooplm-reset.timer`.
 
 | Want | `OnCalendar=` |
 |---|---|
@@ -218,7 +212,30 @@ journalctl -u odooplm-reset.service -n 50 # why
 | `timed out waiting for the instance` | the module install is still running or crashed — `docker compose logs odoo` |
 | `WARNING: pull failed` | registry unreachable; the instance restarted from the local image, which is fine |
 
-Nothing is lost by running it again: `sudo systemctl start odooplm-reset.service`.
+Nothing is lost by running it again: `systemctl start odooplm-reset.service`.
+
+## What your reverse proxy needs
+
+Four things, whatever proxy you use:
+
+| | |
+|---|---|
+| **Upstream** | `127.0.0.1:8069` for everything |
+| **Websocket** | `/websocket` must go to `127.0.0.1:8072`, with the `Upgrade`/`Connection` headers — this is the chatter and the 3D viewer |
+| **Body size** | CAD documents are big. nginx defaults to 1 MB and answers 413; `client_max_body_size 1G` |
+| **Timeouts** | CAD conversions and BOM imports are slow; allow ~900s |
+
+Two settings in `config/odoo.conf` are part of this contract:
+
+* `workers = 4` — **port 8072 only exists when `workers` is greater than 0.**
+  At `workers = 0` there is nothing to proxy `/websocket` to and the 3D viewer
+  hangs with no error in the Odoo log.
+* `proxy_mode = True` — Odoo then trusts `X-Forwarded-Proto`. Your proxy must
+  actually send it, or Odoo builds `http://` URLs behind your `https://`.
+
+Worth doing on a public instance: block `/web/database/` at the proxy. The
+entrypoint creates the database, so nothing needs the manager, and it is the
+first thing that gets probed.
 
 ## Operating it
 
@@ -226,46 +243,31 @@ Nothing is lost by running it again: `sudo systemctl start odooplm-reset.service
 cd /opt/odooplm-19
 make logs             # follow the Odoo logs
 make reset            # wipe and rebuild now, same as the timer
-docker compose ps     # odoo, db and caddy
+docker compose ps     # odoo and db
 docker compose restart odoo         # after editing config/odoo.conf
-docker compose restart caddy        # after editing deploy/Caddyfile
 ```
 
-Updating the packaging (new compose file, new proxy config):
+Updating the packaging:
 
 ```bash
-sudo git pull
-sudo docker compose up -d
+git pull
+docker compose up -d
 ```
 
-Your `.env` and `config/odoo.conf` are not tracked in git, so a `git pull` never
-overwrites them — check `deploy/env.demo-server.example` after an update in case
-new variables appeared.
+Your `.env` is not tracked in git, so a `git pull` never overwrites it — check
+`deploy/env.demo-server.example` after an update in case new variables appeared.
+`config/odoo.conf` **is** tracked, so a `git pull` can conflict with your edited
+copy; keep yours (`git checkout --ours config/odoo.conf`) and re-read the
+example if it changed.
 
 ## Notes on the setup
 
-**Ports.** Odoo publishes `8069`/`8072` on `127.0.0.1` only; the internet
-reaches it through Caddy, which talks to the container over the compose network.
-To open the raw port from your workstation:
-`ssh -L 8069:127.0.0.1:8069 user@server`.
-
-**Workers.** `deploy/odoo.public.conf` sets `workers = 4`, which is what makes
-Odoo serve the websocket on port `8072` — the port `deploy/Caddyfile` routes
-`/websocket` to, and what the chatter and the 3D viewer need. If you drop back
-to `workers = 0`, remove the `@websocket` block from the Caddyfile as well, or
-the viewer will hang. Size it as `(2 × cores) + 1`.
-
-**Database manager.** The Caddyfile answers 403 on `/web/database/*`, and
-`list_db = False` hides the database list. The entrypoint creates the database,
-so nothing on the server needs the manager. Delete the `@dbmanager` block if you
-want to restore backups through the browser.
+**Ports.** Odoo publishes `8069`/`8072` on `127.0.0.1` only. To reach it from
+your workstation without a proxy: `ssh -L 8069:127.0.0.1:8069 user@server`.
 
 **Backups.** There are none, on purpose: this instance is designed to lose its
 data every week. If something on it becomes worth keeping, it belongs on another
 server — see the backup section of the [main README](../README.md#backup-and-restore).
 
-**Firewall.** Only 80, 443 and your SSH port need to be open:
-
-```bash
-sudo ufw allow 80,443/tcp && sudo ufw allow OpenSSH && sudo ufw enable
-```
+**Firewall.** The stack itself needs no open port: only your proxy's 80/443 and
+your SSH port.

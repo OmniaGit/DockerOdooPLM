@@ -150,19 +150,23 @@ docker compose down
 ## Running it as a demo server
 
 [`deploy/`](deploy/README.md) is a complete runbook for putting this stack on a
-Linux server behind HTTPS, with a systemd timer that deletes the data and
-rebuilds the instance every Sunday night — visitors get a clean PLM every
-Monday, and nothing anyone leaves behind survives the week.
+Linux server with a systemd timer that deletes the data and rebuilds the
+instance every Sunday night — visitors get a clean PLM every Monday, and
+nothing anyone leaves behind survives the week.
 
 ```bash
-sudo git clone --branch 19.0 https://github.com/OmniaGit/DockerOdooPLM.git /opt/odooplm-19
+git clone --branch 19.0 https://github.com/OmniaGit/DockerOdooPLM.git /opt/odooplm-19
 cd /opt/odooplm-19
-sudo ./deploy/install.sh --hostname plm-demo.example.com --email you@example.com
+./deploy/install.sh
 ```
 
 The installer writes the two files a clone cannot carry — `.env` and a
-`config/odoo.conf` fit for a public server — generating the passwords itself,
-installs the timer and verifies the demo data landed.
+`config/odoo.conf` fit for a server — generating the passwords itself, installs
+the timer and verifies the demo data landed.
+
+Odoo is published on `127.0.0.1:8069` (and `:8072` for the websocket); TLS and
+the public name are left to your own reverse proxy — see [what it
+needs](deploy/README.md#what-your-reverse-proxy-needs).
 
 The reset itself is one script — `make reset` runs it by hand:
 

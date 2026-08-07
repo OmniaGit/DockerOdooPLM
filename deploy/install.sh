@@ -1,19 +1,23 @@
 #!/bin/bash
 #
-# Set up this clone as a public OdooPLM demo server that rebuilds itself weekly.
+# Set up this clone as a demo server that rebuilds itself every Sunday night.
 #
-#   sudo ./deploy/install.sh --hostname plm-demo.example.com --email you@example.com
+# Run it as root — on a stock Debian that means `su -`, not sudo:
+#
+#   ./deploy/install.sh
 #
 # It writes the two files a clone cannot carry (.env, config/odoo.conf), installs
 # the systemd timer pointing at wherever this repository actually sits, starts the
 # stack and checks the demo data really landed.
 #
+# TLS and the public hostname are not its business: Odoo is published on
+# 127.0.0.1 only, and your own reverse proxy (nginx, Traefik, HAProxy…) is what
+# the internet talks to. The summary at the end says where to point it.
+#
 # Safe to run twice: it never overwrites a .env or an odoo.conf you have already
 # adapted, and it never touches the database. It only ever adds what is missing.
 #
 # Options:
-#   --hostname NAME    public DNS name, used for the TLS certificate (required)
-#   --email ADDRESS    address Let's Encrypt warns about expiry (recommended)
 #   --schedule EXPR    systemd OnCalendar expression for the weekly reset
 #                      (default "Sun *-*-* 23:30:00")
 #   --image REF        image to run (default ghcr.io/omniagit/odooplm:19.0-demo)
@@ -30,8 +34,6 @@ SCRIPT_NAME=install
 # shellcheck source=scripts/lib-instance.sh
 . ./scripts/lib-instance.sh
 
-HOSTNAME_ARG=""
-EMAIL=""
 SCHEDULE="Sun *-*-* 23:30:00"
 IMAGE="ghcr.io/omniagit/odooplm:19.0-demo"
 WITH_TIMER=1
@@ -41,8 +43,6 @@ EXPECT_MODULES="plm,plm_demo"
 
 while [ $# -gt 0 ]; do
     case "$1" in
-        --hostname) HOSTNAME_ARG="${2:?--hostname needs a value}"; shift 2 ;;
-        --email)    EMAIL="${2:?--email needs a value}"; shift 2 ;;
         --schedule) SCHEDULE="${2:?--schedule needs a value}"; shift 2 ;;
         --image)    IMAGE="${2:?--image needs a value}"; shift 2 ;;
         --no-timer) WITH_TIMER=0; shift ;;
@@ -60,38 +60,14 @@ done
 
 command -v docker >/dev/null || die "docker is not installed — curl -fsSL https://get.docker.com | sh"
 docker compose version >/dev/null 2>&1 || die "the docker compose plugin is missing"
-docker info >/dev/null 2>&1 || die "cannot talk to the docker daemon (run me with sudo, or add yourself to the docker group)"
+docker info >/dev/null 2>&1 || die "cannot talk to the docker daemon — run me as root (su -), or add yourself to the docker group"
 [ -f compose.yaml ] || die "compose.yaml not found in ${REPO} — run me from inside the clone"
 
 # Only the systemd part needs root; --no-timer is how you test as a normal user.
+# No sudo anywhere in this script: a stock Debian does not have it installed.
 if [ "$WITH_TIMER" = "1" ] && [ "$(id -u)" != "0" ]; then
-    die "installing the timer writes to /etc/systemd/system — re-run with sudo, or pass --no-timer"
+    die "installing the timer writes to /etc/systemd/system — run me as root (su -), or pass --no-timer"
 fi
-
-if [ -z "$HOSTNAME_ARG" ]; then
-    if [ -t 0 ]; then
-        read -rp "Public DNS name for this server (e.g. plm-demo.example.com): " HOSTNAME_ARG
-    fi
-    [ -n "$HOSTNAME_ARG" ] || die "--hostname is required: it is the name on the TLS certificate"
-fi
-
-if [ -z "$EMAIL" ] && [ -t 0 ]; then
-    read -rp "Email for Let's Encrypt expiry notices (optional, Enter to skip): " EMAIL
-fi
-
-# A name that does not resolve here means Caddy cannot be issued a certificate.
-# Only a warning: split-horizon DNS and NAT both make the local view unreliable.
-if command -v getent >/dev/null && ! getent hosts "$HOSTNAME_ARG" >/dev/null 2>&1; then
-    log "WARNING: '${HOSTNAME_ARG}' does not resolve from this machine."
-    log "         Caddy needs its A/AAAA record pointing here before it can get a"
-    log "         certificate. Carry on if the DNS change is still propagating."
-fi
-
-for port in 80 443; do
-    if command -v ss >/dev/null && ss -ltn "sport = :${port}" 2>/dev/null | grep -q LISTEN; then
-        log "WARNING: something is already listening on port ${port}; Caddy will fail to bind"
-    fi
-done
 
 # --- .env --------------------------------------------------------------------
 
@@ -113,8 +89,6 @@ else
     pg_password="$(newpass)"
     # Values are alphanumeric by construction, so a plain | delimiter is safe.
     sed -e "s|^ODOOPLM_IMAGE=.*|ODOOPLM_IMAGE=${IMAGE}|" \
-        -e "s|^ODOOPLM_HOSTNAME=.*|ODOOPLM_HOSTNAME=${HOSTNAME_ARG}|" \
-        -e "s|^ACME_EMAIL=.*|ACME_EMAIL=${EMAIL}|" \
         -e "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${pg_password}|" \
         deploy/env.demo-server.example > .env
     # It holds the database password.
@@ -124,8 +98,8 @@ fi
 # --- config/odoo.conf --------------------------------------------------------
 
 # The clone carries the *test* config: admin_passwd = admin, list_db = True,
-# workers = 0. All three are wrong on a public server, and workers = 0 also kills
-# the websocket the 3D viewer needs. Replace it while it is still that file.
+# workers = 0. All three are wrong on a server, and workers = 0 also kills the
+# websocket the 3D viewer needs. Replace it while it is still that file.
 if [ "$FORCE_CONFIG" = "0" ] && [ -f config/odoo.conf ] && \
    ! grep -qE '^\s*admin_passwd\s*=\s*admin\s*$' config/odoo.conf; then
     log "keeping config/odoo.conf — it is no longer the insecure default"
@@ -135,16 +109,12 @@ else
         cp config/odoo.conf "$backup"
         log "previous config saved as ${backup}"
     fi
-    log "writing config/odoo.conf for a public server"
+    log "writing config/odoo.conf"
     admin_password="$(newpass)"
     sed -e "s|^admin_passwd = .*|admin_passwd = ${admin_password}|" \
         deploy/odoo.public.conf > config/odoo.conf
     log "database manager password: ${admin_password}"
 fi
-
-# Caddy stores the certificates here. Bind mounts, so that the weekly
-# `docker compose down --volumes` cannot delete them.
-mkdir -p deploy/caddy/data deploy/caddy/config
 
 # --- systemd -----------------------------------------------------------------
 
@@ -178,17 +148,23 @@ docker compose up -d
 wait_healthy 1800
 verify_modules "$EXPECT_MODULES"
 
+# Report what the ports actually ended up as, rather than assuming the defaults.
+web="$(docker compose port odoo 8069 2>/dev/null || echo '127.0.0.1:8069')"
+ws="$(docker compose port odoo 8072 2>/dev/null || echo '127.0.0.1:8072')"
+
 cat <<EOF
 
   OdooPLM demo server ready
   -------------------------
-  URL       https://${HOSTNAME_ARG}
+  Odoo      http://${web}
+  Websocket http://${ws}          (chatter and 3D viewer)
   Login     admin / admin
-  Reset     $([ "$WITH_TIMER" = "1" ] && echo "${SCHEDULE} (systemctl list-timers odooplm-reset.timer)" || echo "not installed")
+  Reset     $([ "$WITH_TIMER" = "1" ] && echo "${SCHEDULE} — systemctl list-timers odooplm-reset.timer" || echo "not installed")
   Logs      cd ${REPO} && docker compose logs -f odoo
   Rebuild   cd ${REPO} && make reset
 
-  If the URL does not answer, the certificate is the first thing to check:
-      docker compose logs caddy
+  Point your reverse proxy at those two: everything at ${web}, and the
+  /websocket route at ${ws}. Odoo is on loopback only, so until the proxy
+  is configured the instance is reachable from this machine alone.
 
 EOF

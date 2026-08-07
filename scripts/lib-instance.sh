@@ -10,7 +10,7 @@ die() { echo "[${SCRIPT_NAME:-odooplm}] ERROR: $*" >&2; exit 1; }
 #
 # Block until the odoo container reports healthy, or fail. Uses the healthcheck
 # declared in compose.yaml rather than curl, so it works whatever the ports are
-# bound to — on a proxied server they are on loopback only.
+# bound to — behind a reverse proxy they are on loopback only.
 wait_healthy() {
     local timeout="${1:-1800}" cid status deadline
     cid="$(docker compose ps -q odoo)"
