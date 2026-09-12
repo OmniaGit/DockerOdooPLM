@@ -216,7 +216,7 @@ Nothing is lost by running it again: `systemctl start odooplm-reset.service`.
 
 ## What your reverse proxy needs
 
-Four things, whatever proxy you use:
+Five things, whatever proxy you use:
 
 | | |
 |---|---|
@@ -224,6 +224,7 @@ Four things, whatever proxy you use:
 | **Websocket** | `/websocket` must go to `127.0.0.1:8072`, with the `Upgrade`/`Connection` headers — this is the chatter and the 3D viewer |
 | **Body size** | CAD documents are big. nginx defaults to 1 MB and answers 413; `client_max_body_size 1G` |
 | **Timeouts** | CAD conversions and BOM imports are slow; allow ~900s |
+| **Port 443** | Redirecting 80 to 443 is fine for browsers, but the CAD client must be configured on **443 over `https`** directly: its XML-RPC layer does not follow the `301` and the login fails |
 
 Two settings in `config/odoo.conf` are part of this contract:
 

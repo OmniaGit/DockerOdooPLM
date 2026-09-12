@@ -166,7 +166,9 @@ the timer and verifies the demo data landed.
 
 Odoo is published on `127.0.0.1:8069` (and `:8072` for the websocket); TLS and
 the public name are left to your own reverse proxy — see [what it
-needs](deploy/README.md#what-your-reverse-proxy-needs).
+needs](deploy/README.md#what-your-reverse-proxy-needs). The proxy has to serve
+**443 over `https`**: that is the port the CAD client connects to, as it does on
+the public demo at <https://v19.odooplm.cloud> (database `odooplm`).
 
 The reset itself is one script — `make reset` runs it by hand:
 
@@ -223,7 +225,18 @@ job through the browser (master password: `admin_passwd` from `config/odoo.conf`
 
 The desktop connector (SolidWorks, SolidEdge, Inventor, AutoCAD, FreeCAD…) is
 distributed separately: <https://sourceforge.net/projects/openerpplm/>.
-Point it at `http://<host>:8069` with the database `odooplm`.
+
+| | This stack | Public demo |
+|---|---|---|
+| Protocol | `http` | `https` |
+| Host | `localhost` (or the host running it) | `v19.odooplm.cloud` |
+| Port | `8069` | `443` |
+| Database | `odooplm` | `odooplm` |
+| User / password | `admin` / `admin` | `admin` / `admin` |
+
+> Once the stack is behind a TLS reverse proxy, point the client at **443 over
+> `https`**, not at 80. Port 80 answers `301` to the HTTPS URL and the client's
+> XML-RPC layer does not follow redirects, so the login fails.
 
 ## Troubleshooting
 
