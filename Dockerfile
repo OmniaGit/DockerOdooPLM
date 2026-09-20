@@ -49,8 +49,8 @@ WORKDIR /src
 
 # The 3D/2D viewer ships three.js and dxf-viewer as git submodules. Only those two
 # are needed — the cadquery submodule is replaced by the pip package.
-RUN for sub in plm_web_3d/static/src/js/lib/three.js \
-               plm_web_3d/static/src/js/lib/dxf-viewer; do \
+RUN for sub in plm_web_3d/static/lib/three.js \
+               plm_web_3d/static/lib/dxf-viewer; do \
         git submodule update --init --depth 1 "$sub" \
             || git submodule update --init "$sub"; \
     done
@@ -58,7 +58,7 @@ RUN for sub in plm_web_3d/static/src/js/lib/three.js \
 # three.js checks out at ~875 MB, of which the viewer uses about 30: build/ and
 # src/ (the dxf-viewer imports individual modules from there), examples/jsm for the
 # loaders and controls, and examples/fonts for the measurement labels.
-RUN THREE=plm_web_3d/static/src/js/lib/three.js \
+RUN THREE=plm_web_3d/static/lib/three.js \
     && if [ -d "$THREE" ]; then \
         find "$THREE" -mindepth 1 -maxdepth 1 \
             ! -name build ! -name src ! -name examples ! -name LICENSE ! -name package.json \
@@ -73,8 +73,11 @@ RUN THREE=plm_web_3d/static/src/js/lib/three.js \
 RUN python3 - <<'PY'
 import os, re, sys
 
-root = "/src/plm_web_3d/static/src/js"
-bundled = os.path.join(root, "lib/three.js")
+# The viewer's own code is under static/src/js, the libraries beside it in
+# static/lib: walking static/ covers both, and odoocad, which imports three.js
+# as well.
+root = "/src/plm_web_3d/static"
+bundled = "/src/plm_web_3d/static/lib/three.js"
 reference = re.compile(r"""['"]([^'"]*three\.js/[^'"]+)['"]""")
 missing, checked = set(), 0
 
