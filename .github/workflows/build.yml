@@ -8,10 +8,9 @@ on:
       - "LICENSE"
   pull_request:
     branches: ["19.0"]
+  # also started every week by weekly.yml on the default branch: a schedule
+  # declared here would only fire on the default branch
   workflow_dispatch:
-  schedule:
-    # weekly rebuild, so the image follows the odooplm branch and the Odoo base image
-    - cron: "0 4 * * 1"
 
 env:
   ODOO_VERSION: "19.0"
