@@ -1,0 +1,38 @@
+name: weekly rebuild
+
+# GitHub runs a `schedule` trigger only from the default branch, so the cron
+# that each version branch declared in its own build.yml never fired outside
+# 18.0: the 19.0 images went stale until somebody rebuilt them by hand. This
+# workflow lives on the default branch and starts build.yml on every version
+# branch, so the images follow the odooplm branches and the Odoo base image.
+
+on:
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start build.yml on every version branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # a new version branch (20.0, ...) is picked up the week it appears
+          branches="$(gh api "repos/${GH_REPO}/branches" --paginate --jq '.[].name' \
+                        | grep -E '^[0-9]+\.0$' | sort -V)"
+          if [ -z "$branches" ]; then
+            echo "::error::no version branch found"
+            exit 1
+          fi
+          for branch in $branches; do
+            echo ">>> build.yml on $branch"
+            gh workflow run build.yml --ref "$branch"
+          done
