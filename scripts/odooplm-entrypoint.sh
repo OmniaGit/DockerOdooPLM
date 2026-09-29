@@ -86,8 +86,9 @@ if should_init "${1:-}"; then
             --db_user "$USER" --db_password "$PASSWORD"
             --stop-after-init --no-http
         )
-        if [ "$ODOOPLM_WITH_DEMO" != "1" ]; then
-            INIT_ARGS+=(--without-demo=all)
+        # Since 19.0 new databases get no demo data unless --with-demo is given.
+        if [ "$ODOOPLM_WITH_DEMO" = "1" ]; then
+            INIT_ARGS+=(--with-demo)
         fi
         if [ -n "$ODOOPLM_INIT_LANG" ]; then
             INIT_ARGS+=(--load-language "$ODOOPLM_INIT_LANG")
