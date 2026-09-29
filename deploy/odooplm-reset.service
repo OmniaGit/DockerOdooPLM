@@ -7,8 +7,8 @@ After=docker.service network-online.target
 [Service]
 Type=oneshot
 # Adapt if you cloned the repository somewhere else.
-WorkingDirectory=/opt/odooplm-19
-ExecStart=/opt/odooplm-19/scripts/reset-demo.sh
+WorkingDirectory=/opt/odooplm-20
+ExecStart=/opt/odooplm-20/scripts/reset-demo.sh
 # A container that answers HTTP is not proof the demo data came back. Fail the
 # unit unless these are really installed once the instance is up.
 Environment=RESET_EXPECT_MODULES=plm,plm_demo

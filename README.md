@@ -1,18 +1,18 @@
-# OdooPLM 19.0 — Docker
+# OdooPLM 20.0 — Docker
 
 Docker image and Compose stack for **[OdooPLM](https://github.com/OmniaGit/odooplm)**
-on **Odoo 19.0**, by [OmniaSolutions](https://www.omniasolutions.website).
+on **Odoo 20.0**, by [OmniaSolutions](https://www.omniasolutions.website).
 
 > Other Odoo releases live in the matching branch of this repository:
-> [`18.0`](../../tree/18.0) · [`19.0`](../../tree/19.0) · [index](../../tree/main)
+> [`18.0`](../../tree/18.0) · [`19.0`](../../tree/19.0) · [`20.0`](../../tree/20.0) · [index](../../tree/main)
 
 ---
 
 ## Quick start
 
 ```bash
-git clone --branch 19.0 https://github.com/OmniaGit/DockerOdooPLM.git odooplm-19
-cd odooplm-19
+git clone --branch 20.0 https://github.com/OmniaGit/DockerOdooPLM.git odooplm-20
+cd odooplm-20
 docker compose up
 ```
 
@@ -37,8 +37,8 @@ docker compose logs -f odoo
 
 | | |
 |---|---|
-| Base | official `odoo:19.0` image (Ubuntu 24.04, Python 3.12) |
-| PLM modules | the `19.0` branch of [OmniaGit/odooplm](https://github.com/OmniaGit/odooplm), in `/mnt/odooplm-addons` |
+| Base | official `odoo:20.0` image (Ubuntu 24.04, Python 3.12) |
+| PLM modules | the `20.0` branch of [OmniaGit/odooplm](https://github.com/OmniaGit/odooplm), in `/mnt/odooplm-addons` |
 | Your modules | `./addons-extra` of this repository, mounted on `/mnt/extra-addons` |
 | Database | PostgreSQL 17 container |
 | Ports | `8069` web, `8072` websocket (chatter, 3D viewer) |
@@ -52,16 +52,22 @@ installed. The two Enterprise-only modules (`plm_pdf_workorder_enterprise`,
 `plm_ent_breakages_helpdesk`) are removed at build time; set
 `--build-arg KEEP_ENTERPRISE_MODULES=1` if you run Odoo Enterprise.
 
+> **Migration in progress.** The `20.0` branch of odooplm does not carry every
+> module yet: `plm_web_3d_sale`, `plm_suspended`, `plm_workflow_custom_action`,
+> `plm_mcp_bot`, `plm_mcp_ecr` and `plm_mcp_odoo_ai` are still marked
+> `installable: False` and are not offered in *Apps*. The `latest` tags stay on
+> [`19.0`](../../tree/19.0) until they are migrated.
+
 ### full vs slim
 
 | Variant | Tag | On disk | Difference |
 |---|---|---|---|
-| full | `19.0`, `latest` | ~4.4 GB | includes the CAD conversion stack (`cadquery`/OCP/vtk, `ezdxf`, `matplotlib`, `numpy-stl`, `to-3mf`) required by `plm_automated_convertion` — STEP → 3MF / STL / PNG batch conversion |
-| slim | `19.0-slim`, `latest-slim` | ~2.5 GB | every PLM module works except `plm_automated_convertion`, which refuses to install on the missing `cadquery` dependency — it is the only module importing those packages |
+| full | `20.0` | ~4.4 GB | includes the CAD conversion stack (`cadquery`/OCP/vtk, `ezdxf`, `matplotlib`, `numpy-stl`, `to-3mf`) required by `plm_automated_convertion` — STEP → 3MF / STL / PNG batch conversion |
+| slim | `20.0-slim` | ~2.5 GB | every PLM module works except `plm_automated_convertion`, which refuses to install on the missing `cadquery` dependency — it is the only module importing those packages |
 
 ```bash
 # use the slim image
-ODOOPLM_IMAGE=ghcr.io/omniagit/odooplm:19.0-slim docker compose up -d
+ODOOPLM_IMAGE=ghcr.io/omniagit/odooplm:20.0-slim docker compose up -d
 ```
 
 ### demo data
@@ -74,7 +80,7 @@ relations and 3D markups).
 
 ```bash
 # a populated PLM to look at, instead of an empty one
-ODOOPLM_IMAGE=ghcr.io/omniagit/odooplm:19.0-demo docker compose up -d
+ODOOPLM_IMAGE=ghcr.io/omniagit/odooplm:20.0-demo docker compose up -d
 ```
 
 It is meant for evaluation, demonstrations and training — not for production.
@@ -83,10 +89,10 @@ The plain tags stay empty and install `plm` only.
 Published on both registries:
 
 ```
-ghcr.io/omniagit/odooplm:19.0             mboscolo/odooplm:19.0
-ghcr.io/omniagit/odooplm:19.0-slim        mboscolo/odooplm:19.0-slim
-ghcr.io/omniagit/odooplm:19.0-demo        mboscolo/odooplm:19.0-demo
-ghcr.io/omniagit/odooplm:19.0-slim-demo   mboscolo/odooplm:19.0-slim-demo
+ghcr.io/omniagit/odooplm:20.0             mboscolo/odooplm:20.0
+ghcr.io/omniagit/odooplm:20.0-slim        mboscolo/odooplm:20.0-slim
+ghcr.io/omniagit/odooplm:20.0-demo        mboscolo/odooplm:20.0-demo
+ghcr.io/omniagit/odooplm:20.0-slim-demo   mboscolo/odooplm:20.0-slim-demo
 ```
 
 ## Configuration
@@ -95,7 +101,7 @@ All variables have working defaults; see [`.env.example`](.env.example).
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `ODOOPLM_IMAGE` | `ghcr.io/omniagit/odooplm:19.0` | image used by the stack |
+| `ODOOPLM_IMAGE` | `ghcr.io/omniagit/odooplm:20.0` | image used by the stack |
 | `ODOO_PORT` | `8069` | host port for the web interface |
 | `ODOO_WEBSOCKET_PORT` | `8072` | host port for websocket/longpolling |
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` | `odoo` / `odoo` | database credentials |
@@ -105,7 +111,7 @@ All variables have working defaults; see [`.env.example`](.env.example).
 | `ODOOPLM_INIT_LANG` | *(empty)* | extra language to load, e.g. `it_IT` |
 | `ODOOPLM_AUTO_INIT` | `1` | `0` disables the automatic database creation |
 | `ODOOPLM_VARIANT` | `full` | build argument: `full` or `slim` |
-| `ODOOPLM_REF` | `19.0` | build argument: branch/tag/commit of `odooplm` to package |
+| `ODOOPLM_REF` | `20.0` | build argument: branch/tag/commit of `odooplm` to package |
 
 Want the whole suite installed from the start?
 
@@ -155,8 +161,8 @@ instance every Sunday night — visitors get a clean PLM every Monday, and
 nothing anyone leaves behind survives the week.
 
 ```bash
-git clone --branch 19.0 https://github.com/OmniaGit/DockerOdooPLM.git /opt/odooplm-19
-cd /opt/odooplm-19
+git clone --branch 20.0 https://github.com/OmniaGit/DockerOdooPLM.git /opt/odooplm-20
+cd /opt/odooplm-20
 ./deploy/install.sh
 ```
 
@@ -168,7 +174,8 @@ Odoo is published on `127.0.0.1:8069` (and `:8072` for the websocket); TLS and
 the public name are left to your own reverse proxy — see [what it
 needs](deploy/README.md#what-your-reverse-proxy-needs). The proxy has to serve
 **443 over `https`**: that is the port the CAD client connects to, as it does on
-the public demo at <https://v19.odooplm.cloud> (database `odooplm`).
+the public 19.0 demo at <https://v19.odooplm.cloud> (database `odooplm`); there is
+no public 20.0 demo yet.
 
 The reset itself is one script — `make reset` runs it by hand:
 
@@ -182,16 +189,16 @@ docker compose up -d            # the entrypoint rebuilds everything
 
 ```bash
 docker compose build                       # full variant
-docker build --build-arg VARIANT=slim -t odooplm:19.0-slim .
+docker build --build-arg VARIANT=slim -t odooplm:20.0-slim .
 
 # package a specific state of the PLM sources
-docker build --build-arg ODOOPLM_REF=19.0 -t odooplm:19.0 .
+docker build --build-arg ODOOPLM_REF=20.0 -t odooplm:20.0 .
 ```
 
 The exact PLM commit baked into an image is recorded inside it:
 
 ```bash
-docker run --rm --entrypoint cat ghcr.io/omniagit/odooplm:19.0 /etc/odooplm-build-info
+docker run --rm --entrypoint cat ghcr.io/omniagit/odooplm:20.0 /etc/odooplm-build-info
 ```
 
 ## Adding your own modules
@@ -208,13 +215,13 @@ docker compose exec odoo odoo -d odooplm --db_host db -i your_module --stop-afte
 ```bash
 # backup (database + filestore)
 docker compose exec -T db pg_dump -U odoo -Fc odooplm > backups/odooplm.dump
-docker run --rm -v odooplm19_odoo-data:/data -v "$PWD/backups:/backup" \
+docker run --rm -v odooplm20_odoo-data:/data -v "$PWD/backups:/backup" \
     busybox tar czf /backup/filestore.tgz -C /data .
 
 # restore
 docker compose exec -T db psql -U odoo -d postgres -c "CREATE DATABASE odooplm OWNER odoo"
 docker compose exec -T db pg_restore -U odoo -d odooplm < backups/odooplm.dump
-docker run --rm -v odooplm19_odoo-data:/data -v "$PWD/backups:/backup" \
+docker run --rm -v odooplm20_odoo-data:/data -v "$PWD/backups:/backup" \
     busybox tar xzf /backup/filestore.tgz -C /data
 ```
 
@@ -229,7 +236,7 @@ distributed separately: <https://sourceforge.net/projects/openerpplm/>.
 | | This stack | Public demo |
 |---|---|---|
 | Protocol | `http` | `https` |
-| Host | `localhost` (or the host running it) | `v19.odooplm.cloud` |
+| Host | `localhost` (or the host running it) | `v19.odooplm.cloud` (19.0) |
 | Port | `8069` | `443` |
 | Database | `odooplm` | `odooplm` |
 | User / password | `admin` / `admin` | `admin` / `admin` |

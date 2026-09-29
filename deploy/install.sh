@@ -20,7 +20,7 @@
 # Options:
 #   --schedule EXPR    systemd OnCalendar expression for the weekly reset
 #                      (default "Sun *-*-* 23:30:00")
-#   --image REF        image to run (default ghcr.io/omniagit/odooplm:19.0-demo)
+#   --image REF        image to run (default ghcr.io/omniagit/odooplm:20.0-demo)
 #   --port N           host port for Odoo (default 8069, or the next free one)
 #   --ws-port N        host port for the websocket (default 8072, likewise)
 #   --no-timer         configure and start, but do not install the weekly reset
@@ -42,7 +42,7 @@ SCRIPT_NAME=install
 . ./scripts/lib-instance.sh
 
 SCHEDULE="Sun *-*-* 23:30:00"
-IMAGE="ghcr.io/omniagit/odooplm:19.0-demo"
+IMAGE="ghcr.io/omniagit/odooplm:20.0-demo"
 WITH_TIMER=1
 WITH_START=1
 FORCE_CONFIG=0
@@ -182,8 +182,8 @@ fi
 
 if [ "$WITH_TIMER" = "1" ]; then
     log "installing the weekly reset (${SCHEDULE})"
-    # The units ship with /opt/odooplm-19 in them; point them at this clone.
-    sed "s|/opt/odooplm-19|${REPO}|g" \
+    # The units ship with /opt/odooplm-20 in them; point them at this clone.
+    sed "s|/opt/odooplm-20|${REPO}|g" \
         deploy/odooplm-reset.service > /etc/systemd/system/odooplm-reset.service
     sed "s|^OnCalendar=.*|OnCalendar=${SCHEDULE}|" \
         deploy/odooplm-reset.timer > /etc/systemd/system/odooplm-reset.timer

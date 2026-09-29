@@ -75,7 +75,7 @@ PROJECT=""
 if [ -f .env ]; then
     PROJECT="$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' .env | tr -d '"'\''' | head -1)"
 fi
-: "${PROJECT:=odooplm19}"
+: "${PROJECT:=odooplm20}"
 
 UNITS=(/etc/systemd/system/odooplm-reset.service /etc/systemd/system/odooplm-reset.timer)
 units_present=0
@@ -157,7 +157,7 @@ fi
 if [ "$WITH_IMAGES" = "1" ]; then
     image=""
     [ -f .env ] && image="$(sed -n 's/^ODOOPLM_IMAGE=//p' .env | head -1)"
-    : "${image:=ghcr.io/omniagit/odooplm:19.0-demo}"
+    : "${image:=ghcr.io/omniagit/odooplm:20.0-demo}"
     log "removing the images"
     docker image rm "$image" postgres:17 >/dev/null 2>&1 \
         || log "some images were already gone, or are still used by another stack"
@@ -183,6 +183,6 @@ echo "    units:      $(ls /etc/systemd/system/odooplm-reset.* 2>/dev/null | wc 
 echo "    directory:  $([ -d "$REPO" ] && echo "$REPO" || echo 'removed')"
 echo
 [ "$PURGE_CLONE" = "1" ] || echo "  The clone is still there; delete it with: rm -rf ${REPO}"
-[ "$WITH_IMAGES" = "1" ] || echo "  Images kept (~4.9 GB); free them with: docker image rm ghcr.io/omniagit/odooplm:19.0-demo postgres:17"
+[ "$WITH_IMAGES" = "1" ] || echo "  Images kept (~4.9 GB); free them with: docker image rm ghcr.io/omniagit/odooplm:20.0-demo postgres:17"
 echo "  Your nginx vhost still points here — remove it and reload nginx."
 echo

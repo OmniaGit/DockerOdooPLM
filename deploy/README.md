@@ -1,6 +1,6 @@
 # Demo server, rebuilt every Sunday night
 
-How to run the OdooPLM 19.0 demo instance on a Linux server so that every Sunday
+How to run the OdooPLM 20.0 demo instance on a Linux server so that every Sunday
 at 23:30 it deletes its data and comes back exactly as it was on the first boot.
 
 TLS and the public hostname are **not** handled here. Odoo is published on
@@ -43,8 +43,8 @@ systemctl enable --now docker
 ## The short way
 
 ```bash
-git clone --branch 19.0 https://github.com/OmniaGit/DockerOdooPLM.git /opt/odooplm-19
-cd /opt/odooplm-19
+git clone --branch 20.0 https://github.com/OmniaGit/DockerOdooPLM.git /opt/odooplm-20
+cd /opt/odooplm-20
 ./deploy/install.sh
 ```
 
@@ -61,11 +61,11 @@ afterwards.
 ## 1. Get the code
 
 ```bash
-git clone --branch 19.0 https://github.com/OmniaGit/DockerOdooPLM.git /opt/odooplm-19
-cd /opt/odooplm-19
+git clone --branch 20.0 https://github.com/OmniaGit/DockerOdooPLM.git /opt/odooplm-20
+cd /opt/odooplm-20
 ```
 
-`/opt/odooplm-19` is the path written in `odooplm-reset.service`; if you clone
+`/opt/odooplm-20` is the path written in `odooplm-reset.service`; if you clone
 somewhere else, edit `WorkingDirectory` and `ExecStart` in that file. (`install.sh`
 does that substitution for you.)
 
@@ -89,7 +89,7 @@ Generate them with `openssl rand -base64 24`.
 
 Two settings worth knowing about, both already set for you:
 
-* `ODOOPLM_IMAGE=…:19.0-demo` — the demo tag, which installs `plm_demo` (the
+* `ODOOPLM_IMAGE=…:20.0-demo` — the demo tag, which installs `plm_demo` (the
   LSU-100 sample product) on first boot.
 * `ODOOPLM_WITH_DEMO=1` — loads Odoo's own demo data, which is what creates the
   **admin / admin** login. Without it, the sample product is there but you have
@@ -241,7 +241,7 @@ first thing that gets probed.
 ## Operating it
 
 ```bash
-cd /opt/odooplm-19
+cd /opt/odooplm-20
 make logs             # follow the Odoo logs
 make reset            # wipe and rebuild now, same as the timer
 docker compose ps     # odoo and db

@@ -1,4 +1,4 @@
-ODOO_VERSION ?= 19.0
+ODOO_VERSION ?= 20.0
 VARIANT      ?= full
 IMAGE        ?= odooplm:$(ODOO_VERSION)$(if $(filter-out full,$(VARIANT)),-$(VARIANT),)
 ODOOPLM_REF  ?= $(ODOO_VERSION)

@@ -2,21 +2,21 @@ name: build
 
 on:
   push:
-    branches: ["19.0"]
+    branches: ["20.0"]
     paths-ignore:
       - "**.md"
       - "LICENSE"
   pull_request:
-    branches: ["19.0"]
+    branches: ["20.0"]
   # also started every week by weekly.yml on the default branch: a schedule
   # declared here would only fire on the default branch
   workflow_dispatch:
 
 env:
-  ODOO_VERSION: "19.0"
-  ODOOPLM_REF: "19.0"
-  # this branch packages the newest Odoo release -> it owns the "latest" tags
-  PUSH_LATEST: "true"
+  ODOO_VERSION: "20.0"
+  ODOOPLM_REF: "20.0"
+  # the "latest" tags stay on 19.0 until the odooplm 20.0 migration is complete
+  PUSH_LATEST: "false"
   GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/odooplm
   # set the DOCKERHUB_NAMESPACE variable to publish to Docker Hub as well
   DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
@@ -91,14 +91,41 @@ jobs:
       - name: Smoke test
         run: ./scripts/smoke-test.sh odooplm:ci
 
+      - name: Check the demo modules are installable
+        # while odooplm is being migrated some of them are still marked
+        # installable: False; the -demo tags are skipped until they all are,
+        # rather than failing the whole build
+        id: demo
+        run: |
+          missing="$(docker run --rm -i --entrypoint python3 odooplm:ci - "$DEMO_MODULES" <<'PY'
+          import ast, os, sys
+          root = os.environ["ODOOPLM_ADDONS"]
+          for module in sys.argv[1].split(","):
+              path = os.path.join(root, module, "__manifest__.py")
+              if os.path.exists(path):
+                  with open(path) as fh:
+                      if ast.literal_eval(fh.read()).get("installable", True):
+                          continue
+              print(module)
+          PY
+          )"
+          if [ -n "$missing" ]; then
+            echo "::warning::demo modules not installable yet: $(echo $missing), skipping the -demo tags"
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build the demo variant
         # identical image, only the modules installed on first boot differ, so
         # every layer is shared with the plain tag and the push costs a few kB
+        if: steps.demo.outputs.enabled == 'true'
         run: |
           printf 'FROM odooplm:ci\nENV ODOOPLM_DEFAULT_MODULES=%s\n' "$DEMO_MODULES" \
             | docker build -t odooplm:ci-demo -f - .
 
       - name: Smoke test the demo variant
+        if: steps.demo.outputs.enabled == 'true'
         # SMOKE_EXPECT_MODULES, not ODOOPLM_INIT_MODULES: the point is to check
         # that the image installs its own list the way a user would get it
         env:
@@ -129,6 +156,7 @@ jobs:
         env:
           VARIANT: ${{ matrix.variant }}
           DOCKERHUB_PUSH: ${{ steps.dockerhub.outcome == 'success' }}
+          DEMO_ENABLED: ${{ steps.demo.outputs.enabled }}
         run: |
           set -euo pipefail
 
@@ -144,9 +172,12 @@ jobs:
 
           tags="${ODOO_VERSION}${suffix} ${ODOO_VERSION}${suffix}-build${GITHUB_RUN_NUMBER}"
           demo_tags="${ODOO_VERSION}${suffix}-demo"
+          if [ "$DEMO_ENABLED" != "true" ]; then
+            demo_tags=""
+          fi
           if [ "$PUSH_LATEST" = "true" ]; then
             tags="$tags latest${suffix}"
-            demo_tags="$demo_tags latest${suffix}-demo"
+            [ -z "$demo_tags" ] || demo_tags="$demo_tags latest${suffix}-demo"
           fi
 
           registries="$GHCR_IMAGE"

@@ -1,5 +1,5 @@
 # Python dependencies needed by the OdooPLM modules in every image variant.
-# Mirrors the module manifests of https://github.com/OmniaGit/odooplm (branch 19.0).
+# Mirrors the module manifests of https://github.com/OmniaGit/odooplm (branch 20.0).
 
 # plm_pack_and_go — BOM file tree exported as a ZIP
 base64io
