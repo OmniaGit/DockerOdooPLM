@@ -25,6 +25,7 @@ major release, matching the branch layout of the
 
 | Branch | Odoo | OdooPLM branch | PostgreSQL | Image tags | Status |
 |---|---|---|---|---|---|
+| [`20.0`](../../tree/20.0) | 20.0 | `20.0` | 17 | `20.0`, `20.0-slim` | preview: modules still being migrated |
 | [`19.0`](../../tree/19.0) | 19.0 | `19.0` | 17 | `19.0`, `19.0-slim`, `latest`, `latest-slim` | current |
 | [`18.0`](../../tree/18.0) | 18.0 | `18.0` | 16 | `18.0`, `18.0-slim` | supported |
 | `main` | — | — | — | — | this page |
@@ -32,8 +33,8 @@ major release, matching the branch layout of the
 Older Odoo releases (10.0 → 17.0) exist in the `odooplm` repository but are **not**
 packaged here — this repository covers Odoo 18.0 and newer.
 
-When Odoo 20.0 is released, a `20.0` branch is created from the newest branch and
-`latest` moves to it.
+The `20.0` branch was created from `19.0`. `latest` stays on `19.0` until the
+last OdooPLM modules are migrated to 20.0, then it moves to `20.0`.
 
 ## Images
 
