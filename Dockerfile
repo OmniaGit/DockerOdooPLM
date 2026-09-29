@@ -49,13 +49,26 @@ WORKDIR /src
 
 # The 3D/2D viewer ships three.js and dxf-viewer as git submodules. Only those two
 # are needed — the cadquery submodule is replaced by the pip package.
-RUN for sub in plm_web_3d/static/lib/three.js \
-               plm_web_3d/static/lib/dxf-viewer; do \
-        git submodule update --init --depth 1 "$sub" \
-            || git submodule update --init "$sub"; \
-    done
+RUN git submodule update --init --depth 1 plm_web_3d/static/lib/dxf-viewer \
+    || git submodule update --init plm_web_3d/static/lib/dxf-viewer
 
-# three.js checks out at ~875 MB, of which the viewer uses about 30: build/ and
+# three.js is ~875 MB with its history, and `submodule update --depth 1` cannot
+# reach the pinned commit on GitHub, so it used to fall back to the full clone.
+# Fetching that one commit, without the content of the files left out of the
+# sparse checkout, brings down a few tens of MB.
+RUN THREE=plm_web_3d/static/lib/three.js \
+    && url="$(git config -f .gitmodules "submodule.$THREE.url")" \
+    && sha="$(git ls-tree HEAD "$THREE" | awk '{print $3}')" \
+    && rm -rf "$THREE" \
+    && git init -q "$THREE" \
+    && git -C "$THREE" remote add origin "$url" \
+    && git -C "$THREE" sparse-checkout set build src examples/jsm examples/fonts \
+    && git -C "$THREE" fetch -q --depth 1 --filter=blob:none origin "$sha" \
+    && git -C "$THREE" checkout -q --detach FETCH_HEAD \
+    && echo "three.js at $(git -C "$THREE" rev-parse HEAD)" \
+    && rm -rf "$THREE/.git"
+
+# Of three.js the viewer uses about 30 MB: build/ and
 # src/ (the dxf-viewer imports individual modules from there), examples/jsm for the
 # loaders and controls, and examples/fonts for the measurement labels.
 RUN THREE=plm_web_3d/static/lib/three.js \
